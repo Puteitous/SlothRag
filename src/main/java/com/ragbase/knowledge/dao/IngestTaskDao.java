@@ -100,6 +100,19 @@ public class IngestTaskDao {
         return n == null ? 0 : n;
     }
 
+    /**
+     * 统计某文档下指定状态的任务数
+     */
+    public long countByDocIdAndStatus(Long docId, String status) {
+        Long n = jdbc.queryForObject("SELECT count(*) FROM ingest_task WHERE doc_id = ? AND status = ?",
+                Long.class, docId, status);
+        return n == null ? 0 : n;
+    }
+
+    public void deleteById(Long id) {
+        jdbc.update("DELETE FROM ingest_task WHERE id = ?", id);
+    }
+
     public IngestTask findById(Long id) {
         return jdbc.query("SELECT * FROM ingest_task WHERE id = ?", MAPPER, id).stream()
                 .findFirst().orElse(null);

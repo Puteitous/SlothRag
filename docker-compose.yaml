@@ -1,0 +1,52 @@
+# ragbase 一键起：docker compose up -d
+# API key 从宿主机环境变量或 .env 文件读取（见根目录 .env.example 说明），不要写死在此文件
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ragbase-postgres
+    environment:
+      POSTGRES_DB: ragbase
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # 首次启动自动建表（仅新数据卷时执行）
+      - ./src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ragbase"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: ragbase-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ragbase
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      # AiProperties 前缀为 ai，环境变量需带 AI_ 前缀才能绑定（AI_EMBEDDING_API_KEY -> ai.embedding.api-key）
+      # base-url / model 等公共配置走默认值；API key 从 .env 或宿主机环境变量读取
+      AI_LLM_BASE_URL: ${AI_LLM_BASE_URL:-https://api.deepseek.com}
+      AI_LLM_MODEL: ${AI_LLM_MODEL:-deepseek-v4-flash-vision-exp}
+      AI_LLM_API_KEY: ${LLM_API_KEY:-}
+      AI_EMBEDDING_BASE_URL: ${AI_EMBEDDING_BASE_URL:-https://api.siliconflow.cn}
+      AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-BAAI/bge-m3}
+      AI_EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+      AI_RERANK_BASE_URL: ${AI_RERANK_BASE_URL:-https://api.siliconflow.cn}
+      AI_RERANK_MODEL: ${AI_RERANK_MODEL:-BAAI/bge-reranker-v2-m3}
+      AI_RERANK_API_KEY: ${RERANK_API_KEY:-}
+      KB_STORAGE_DIR: /app/data/docs
+    volumes:
+      - appdata:/app/data
+
+volumes:
+  pgdata:
+  appdata:

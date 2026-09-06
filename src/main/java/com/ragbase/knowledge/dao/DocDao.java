@@ -82,4 +82,13 @@ public class DocDao {
         Long total = jdbc.queryForObject("SELECT count(*) FROM doc WHERE kb_id = ?", Long.class, kbId);
         return total == null ? 0 : total;
     }
+
+    /**
+     * 删除文档（校验归属），chunk 由外键 ON DELETE CASCADE 级联删除
+     *
+     * @return 影响行数，0 表示文档不存在或不属于该库
+     */
+    public int deleteByIdAndKbId(Long id, Long kbId) {
+        return jdbc.update("DELETE FROM doc WHERE id = ? AND kb_id = ?", id, kbId);
+    }
 }

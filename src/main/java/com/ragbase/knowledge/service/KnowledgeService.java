@@ -161,6 +161,46 @@ public class KnowledgeService {
         deleteStorageDir(kbId);
     }
 
+    /**
+     * 删除入库任务（仅终态可删，不影响文档）
+     */
+    public void deleteTask(Long taskId) {
+        IngestTask task = ingestTaskDao.findById(taskId);
+        if (task == null) {
+            throw new BizException("404", "任务不存在");
+        }
+        if (IngestTask.STATUS_RUNNING.equals(task.getStatus())) {
+            throw new BizException("INVALID_STATE", "任务执行中，暂不能删除");
+        }
+        ingestTaskDao.deleteById(taskId);
+    }
+
+    /**
+     * 删除库内文档：级联删除其分块，并清理物理文件
+     */
+    public void deleteDoc(Long kbId, Long docId) {
+        Doc doc = docDao.findById(docId);
+        if (doc == null || !kbId.equals(doc.getKbId())) {
+            throw new BizException("404", "文档不存在");
+        }
+        if (ingestTaskDao.countByDocIdAndStatus(docId, IngestTask.STATUS_RUNNING) > 0) {
+            throw new BizException("INVALID_STATE", "文档存在进行中的入库任务，暂不能删除");
+        }
+        docDao.deleteByIdAndKbId(docId, kbId);
+        deleteDocFile(doc.getFilePath());
+    }
+
+    private void deleteDocFile(String filePath) {
+        if (!StringUtils.hasText(filePath)) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(Path.of(filePath));
+        } catch (IOException e) {
+            log.warn("删除文档文件失败: {}", filePath);
+        }
+    }
+
     private void deleteStorageDir(Long kbId) {
         Path dir = Path.of(storageDir, String.valueOf(kbId));
         if (!Files.exists(dir)) {

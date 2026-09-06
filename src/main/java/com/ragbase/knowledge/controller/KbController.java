@@ -105,4 +105,22 @@ public class KbController {
         knowledgeService.retryTask(taskId);
         return Result.success();
     }
+
+    /**
+     * 删除入库任务（仅终态）
+     */
+    @DeleteMapping("/tasks/{taskId}")
+    public Result<Void> deleteTask(@PathVariable Long taskId) {
+        knowledgeService.deleteTask(taskId);
+        return Result.success();
+    }
+
+    /**
+     * 删除库内文档（级联删除分块）
+     */
+    @DeleteMapping("/{kbId}/docs/{docId}")
+    public Result<Void> deleteDoc(@PathVariable Long kbId, @PathVariable Long docId) {
+        knowledgeService.deleteDoc(kbId, docId);
+        return Result.success();
+    }
 }
