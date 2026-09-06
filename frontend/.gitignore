@@ -1,0 +1,9 @@
+# 依赖与构建产物
+node_modules/
+dist/
+*.tsbuildinfo
+
+# 本地运行时
+*.log
+.env
+.env.local

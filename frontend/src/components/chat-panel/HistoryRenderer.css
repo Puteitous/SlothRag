@@ -1,0 +1,104 @@
+/* HistoryRenderer 历史消息列表样式 */
+
+/* 注意:消息区 .chat-panel-messages 已提供 padding: 16px 0,
+   这里不再重复,避免上下双重间距(对齐旧版 .chat-container) */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Timeline 与上下内容的间距 ──────────────────────────
+   新版 timeline 是 .history-list 的直接子元素,受 gap:16px 影响。
+   用负 margin 完全抵消 gap,使 timeline 与相邻内容紧贴(0px 间距)。
+   左侧补回 assistant 气泡的 padding-left(14px):timeline 从气泡内
+   提到 history-list 层后,margin-left 由 16px 调整为 30px,
+   使左侧竖线与 msg-reasoning 竖线对齐(对齐旧版)。 */
+.history-list .tool-timeline {
+  margin-top: -16px;
+  margin-bottom: -16px;
+  margin-left: 30px;
+}
+
+/* ── 防御:两个 timeline 相邻(刷新后历史数据不规整,
+   assistant.tool_calls 重建 timeline 与未消费 tool 退化 timeline
+   直接相邻)时,后一个不再叠加负 margin,避免重叠。
+   间距 = gap(16) + 前 mb(-16) + 后 mt(0) = 0px,贴住不重叠。 ── */
+.history-list > .tool-timeline + .tool-timeline {
+  margin-top: 0;
+}
+
+/* ── 回合级 footer:间距由 .history-list 的 gap:16px 控制 ──
+   (仅针对 history-list 直接子元素,不影响 .msg-user-wrap 内用户 footer)
+   默认去掉自身 4px 冗余 margin;紧邻 assistant 气泡时再抵消 gap,
+   使 footer 与气泡紧贴(0px)。 */
+.history-list > .message-footer {
+  margin-top: 0;
+  padding-left: 10px;
+}
+.history-list > .msg-bubble-assistant + .message-footer {
+  margin-top: -16px;
+}
+
+/* ── 回滚面板(独立整行块):作为 .history-list 直接子元素,夹在 gap:16px 之间。
+   用负 margin 抵消与 footer 之间的 gap,使面板紧贴该回合 footer(属于当前回合);
+   底部保留少量间距与下一条内容呼吸。宽度与水平居中由 RollbackButton.css 负责。 ── */
+.history-list > .rollback-inline {
+  margin-top: -16px;
+  margin-bottom: 4px;
+}
+
+.history-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: var(--font-size-md);
+  font-style: italic;
+}
+
+.history-loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--active-project);
+  animation: history-loading-pulse 1s ease-in-out infinite;
+}
+
+@keyframes history-loading-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+.history-error {
+  padding: 12px 16px;
+  margin: 12px 0;
+  background: var(--error-bg);
+  border-left: 3px solid var(--error-color);
+  border-radius: var(--radius-sm);
+  color: var(--error-color);
+  font-size: var(--font-size-md);
+}
+
+.history-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-md);
+  font-style: italic;
+}
+
+/* ── 待确认工具独立确认区(对齐旧版回合级行内确认) ──────────
+   渲染在 .history-list 之后、chat-panel-messages 内,不依赖流式
+   tail(isStreamSending),流结束后仍驻留,直到用户决策才消失。 */
+.history-confirm-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* 紧贴上方回合(收尾块):不再额外悬空 */
+  margin-top: 0;
+  /* 对齐工具卡/消息气泡 85% 宽度上限,避免确认卡撑满 860px 显得过宽 */
+  width: 100%;
+  max-width: 85%;
+}

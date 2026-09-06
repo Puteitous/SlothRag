@@ -1,0 +1,143 @@
+/**
+ * ragbase 定制样式(追加在 HippoBuddy 搬入的主题与组件 CSS 之上)。
+ * 新增组件(顶部栏/空态/来源引用)的样式集中于此,不侵入搬入的 CSS。
+ */
+
+/* ===== 顶部栏:标题 + 知识库选择 + 新建会话 ===== */
+.chat-panel-header {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.chat-panel-kb-select {
+  margin-left: auto;
+  min-width: 120px;
+  max-width: 240px;
+  height: 26px;
+  padding: 0 8px;
+  font-size: var(--font-size-sm, 13px);
+  color: var(--text-primary);
+  background: var(--bg-input, var(--bg-app));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  outline: none;
+  cursor: pointer;
+}
+
+.chat-panel-kb-select:hover {
+  border-color: var(--accent, var(--primary-color));
+}
+
+.chat-panel-new-btn {
+  height: 26px;
+  padding: 0 12px;
+  font-size: var(--font-size-sm, 13px);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.chat-panel-new-btn:hover {
+  color: var(--primary-color);
+  border-color: var(--accent, var(--primary-color));
+}
+
+/* ===== 空态欢迎屏:标题 / 副标题 / 预设问题 ===== */
+.chat-empty-hero-title {
+  font-size: var(--font-size-xl, 22px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chat-empty-hero-subtitle {
+  font-size: var(--font-size-md, 14px);
+  color: var(--text-secondary);
+}
+
+.chat-empty-hero-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.chat-empty-hero-preset {
+  padding: 8px 16px;
+  font-size: var(--font-size-sm, 13px);
+  color: var(--text-primary);
+  background: var(--bg-card, var(--bg-app));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 12px);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.chat-empty-hero-preset:hover {
+  border-color: var(--accent, var(--primary-color));
+  color: var(--primary-color);
+}
+
+/* ===== 消息气泡:来源引用折叠区 ===== */
+.msg-sources {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.msg-sources-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  font-size: var(--font-size-sm, 13px);
+  color: var(--text-secondary);
+}
+
+.msg-sources-header:hover {
+  color: var(--primary-color);
+}
+
+.msg-sources-chevron {
+  display: inline-flex;
+  transition: transform 0.15s ease;
+}
+
+.msg-sources.expanded .msg-sources-chevron {
+  transform: rotate(90deg);
+}
+
+.msg-sources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.msg-source-item {
+  display: flex;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-app);
+  border-radius: var(--radius-sm, 6px);
+  font-size: var(--font-size-sm, 13px);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.msg-source-index {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.msg-source-text {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
