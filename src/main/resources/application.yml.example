@@ -1,0 +1,46 @@
+# ragbase 配置模板
+# 使用方式：
+#   1. 复制本文件为 src/main/resources/application.yml
+#   2. 填入 LLM_API_KEY / EMBEDDING_API_KEY / RERANK_API_KEY（或直接在此填值）
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ragbase
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ragbase
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+# 模型 / Embedding API 配置（MVP 阶段走 API，后期可换本地部署）
+ai:
+  llm:
+    base-url: https://api.deepseek.com
+    api-key: ${LLM_API_KEY:}
+    model: deepseek-v4-flash-vision-exp
+  embedding:
+    base-url: https://api.siliconflow.cn
+    api-key: ${EMBEDDING_API_KEY:}
+    model: BAAI/bge-m3
+  rerank:
+    base-url: https://api.siliconflow.cn
+    api-key: ${RERANK_API_KEY:}
+    model: BAAI/bge-reranker-v2-m3
+
+# 知识库文档存储目录
+kb:
+  storage-dir: ${KB_STORAGE_DIR:./data/docs}
+  search:
+    rerank-enabled: true
+    rerank-candidates: 8
+    context-top-k: 6
+    min-rerank-score: 0.05
+  chat:
+    min-similarity: 0.35
+    out-of-scope-message: "很抱歉，这个问题超出了当前知识范围，建议联系人工客服（转8001）进行咨询。"
+
+logging:
+  level:
+    com.ragbase: debug

@@ -1,0 +1,25 @@
+# ===== Maven / Java =====
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# ===== 本地运行时数据（上传文档、会话记录，可能含敏感内容）=====
+data/
+
+# ===== 配置文件（application.yml 含 API key 明文，绝不提交）=====
+src/main/resources/application.yml
+
+# ===== 日志 =====
+*.log
+logs/
+
+# ===== 系统 =====
+.DS_Store
+Thumbs.db
