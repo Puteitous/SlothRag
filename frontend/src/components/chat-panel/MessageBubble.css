@@ -1291,3 +1291,132 @@
   text-align: center;
   word-break: break-all;
 }
+
+/* ════════════════════════════════════════════════════════
+   来源引用折叠区(sources SSE 事件)
+   在助手消息气泡底部,折叠显示来源数量,展开后展示来源卡片
+   ════════════════════════════════════════════════════════ */
+
+.msg-sources {
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+
+.msg-sources-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast);
+  font-size: var(--font-size-sm);
+}
+
+.msg-sources-header:hover {
+  background: var(--bg-canvas);
+}
+
+.msg-sources-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.msg-sources-chevron {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  opacity: 0.6;
+  transition: transform 0.25s ease;
+}
+
+.msg-sources.expanded .msg-sources-chevron {
+  transform: rotate(90deg);
+}
+
+.msg-sources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 0 4px;
+}
+
+.msg-source-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-canvas);
+  border: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.msg-source-index {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+.msg-source-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.msg-source-text {
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.msg-source-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.msg-source-meta svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.msg-source-file {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.msg-source-path {
+  color: var(--text-muted);
+}
+
+.msg-source-path::before {
+  content: "";
+  display: inline-block;
+  vertical-align: middle;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  margin-right: 6px;
+  opacity: 0.4;
+}

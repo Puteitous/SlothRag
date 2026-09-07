@@ -24,7 +24,7 @@ public class ChunkDao {
     /**
      * 检索命中项
      */
-    public record SearchHit(Long id, Long docId, String content, double score) {
+    public record SearchHit(Long id, Long docId, String content, double score, String headingPath, String docName) {
     }
 
     public void batchInsert(List<Chunk> chunks) {
@@ -56,17 +56,22 @@ public class ChunkDao {
      */
     public List<SearchHit> vectorSearch(float[] queryVector, Long kbId, int topK) {
         String sql = """
-                SELECT id, doc_id, content, 1 - (vector <=> ?) AS score
-                FROM chunk
-                WHERE kb_id = ?
-                ORDER BY vector <=> ?
+                SELECT c.id, c.doc_id, c.content, c.heading_path,
+                       1 - (c.vector <=> ?) AS score,
+                       d.file_name AS doc_name
+                FROM chunk c
+                LEFT JOIN doc d ON d.id = c.doc_id
+                WHERE c.kb_id = ?
+                ORDER BY c.vector <=> ?
                 LIMIT ?
                 """;
         return jdbc.query(sql, (rs, i) -> new SearchHit(
                         rs.getLong("id"),
                         rs.getLong("doc_id"),
                         rs.getString("content"),
-                        rs.getDouble("score")),
+                        rs.getDouble("score"),
+                        rs.getString("heading_path"),
+                        rs.getString("doc_name")),
                 new PGvector(queryVector), kbId, new PGvector(queryVector), topK);
     }
 
@@ -80,9 +85,12 @@ public class ChunkDao {
             return List.of();
         }
         StringBuilder sql = new StringBuilder("""
-                SELECT id, doc_id, content, 1.0 AS score
-                FROM chunk
-                WHERE kb_id = ? AND (
+                SELECT c.id, c.doc_id, c.content, c.heading_path,
+                       1.0 AS score,
+                       d.file_name AS doc_name
+                FROM chunk c
+                LEFT JOIN doc d ON d.id = c.doc_id
+                WHERE c.kb_id = ? AND (
                 """);
         List<Object> args = new ArrayList<>();
         args.add(kbId);
@@ -90,16 +98,18 @@ public class ChunkDao {
             if (i > 0) {
                 sql.append(" OR ");
             }
-            sql.append("content LIKE ? ESCAPE '\\'");
+            sql.append("c.content LIKE ? ESCAPE '\\'");
             args.add("%" + escapeLike(keywords.get(i)) + "%");
         }
-        sql.append(") ORDER BY seq LIMIT ?");
+        sql.append(") ORDER BY c.seq LIMIT ?");
         args.add(topK);
         return jdbc.query(sql.toString(), (rs, i) -> new SearchHit(
                         rs.getLong("id"),
                         rs.getLong("doc_id"),
                         rs.getString("content"),
-                        rs.getDouble("score")),
+                        rs.getDouble("score"),
+                        rs.getString("heading_path"),
+                        rs.getString("doc_name")),
                 args.toArray());
     }
 

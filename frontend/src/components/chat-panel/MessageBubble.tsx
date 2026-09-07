@@ -94,7 +94,15 @@ function SourcesCollapse({ sources }: { sources: SourceItem[] }) {
           {sources.map((s, i) => (
             <div key={i} className="msg-source-item">
               <span className="msg-source-index">{i + 1}</span>
-              <span className="msg-source-text">{s.source}</span>
+              <div className="msg-source-body">
+                <span className="msg-source-text">{s.source}</span>
+                {(s.headingPath || s.fileName) && (
+                  <span className="msg-source-meta">
+                    {s.fileName && <span className="msg-source-file">{s.fileName}</span>}
+                    {s.headingPath && <span className="msg-source-path">{s.headingPath}</span>}
+                  </span>
+                )}
+              </div>
             </div>
           ))}
         </div>

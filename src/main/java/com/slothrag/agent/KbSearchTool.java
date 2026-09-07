@@ -68,7 +68,10 @@ public class KbSearchTool {
             if (c == null) {
                 continue;
             }
-            sources.add(Map.of("source", c.length() > 80 ? c.substring(0, 80) + "…" : c));
+            sources.add(Map.of(
+                    "source", c.length() > 80 ? c.substring(0, 80) + "…" : c,
+                    "headingPath", hit.headingPath() != null ? hit.headingPath() : "",
+                    "fileName", hit.docName() != null ? hit.docName() : ""));
         }
         return sources;
     }

@@ -6,6 +6,10 @@
 export interface SourceItem {
   /** 知识片段文本(后端截断至 80 字符) */
   source: string;
+  /** 章节路径（如"第一章 > 1.1 系统架构"） */
+  headingPath?: string;
+  /** 来源文档名 */
+  fileName?: string;
 }
 
 /** 消息角色:slothrag 仅有用户问答,无工具消息 */

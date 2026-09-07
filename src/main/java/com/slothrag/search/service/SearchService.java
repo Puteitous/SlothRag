@@ -47,8 +47,10 @@ public class SearchService {
      * @param score         RRF 融合分（用于融合排序）
      * @param maxSimilarity 最高语义相似度（关键词 LIKE 命中视为强信号）
      * @param rerankScore   Rerank 相关性分；未打分时为 {@link #NO_RERANK_SCORE}
+     * @param headingPath   章节路径（如 "第一章 > 1.1 系统架构"），用于来源追溯
+     * @param docName       来源文档名，用于来源展示
      */
-    public record SearchResultItem(Long chunkId, Long docId, String content, double score, double maxSimilarity, double rerankScore) {
+    public record SearchResultItem(Long chunkId, Long docId, String content, double score, double maxSimilarity, double rerankScore, String headingPath, String docName) {
     }
 
     /**
@@ -100,7 +102,7 @@ public class SearchService {
             for (RerankClient.RerankResult rr : reranked) {
                 SearchResultItem item = candidates.get(rr.index());
                 result.add(new SearchResultItem(item.chunkId(), item.docId(), item.content(),
-                        item.score(), item.maxSimilarity(), rr.score()));
+                        item.score(), item.maxSimilarity(), rr.score(), item.headingPath(), item.docName()));
             }
             return result;
         } catch (Exception e) {
@@ -171,12 +173,15 @@ public class SearchService {
             double rrfScore = 1.0 / (RRF_K + i + 1);
             double similarity = strongSignal ? Math.max(hit.score(), STRONG_SIGNAL_SIMILARITY) : hit.score();
             merged.merge(hit.id(),
-                    new SearchResultItem(hit.id(), hit.docId(), hit.content(), rrfScore, similarity, NO_RERANK_SCORE),
+                    new SearchResultItem(hit.id(), hit.docId(), hit.content(), rrfScore, similarity, NO_RERANK_SCORE, hit.headingPath(), hit.docName()),
                     (old, cur) -> new SearchResultItem(
                             old.chunkId(), old.docId(), old.content(),
                             old.score() + cur.score(),
                             Math.max(old.maxSimilarity(), cur.maxSimilarity()),
-                            NO_RERANK_SCORE));
+                            NO_RERANK_SCORE,
+                            // 优先取同名文档的路径，不同文档则清空（避免跨文档合并）
+                            old.docName() != null && old.docName().equals(cur.docName()) ? old.headingPath() : null,
+                            old.docName() != null ? old.docName() : cur.docName()));
         }
     }
 }
