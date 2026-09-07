@@ -1,4 +1,7 @@
-# SlothRag
+<h1 align="center">
+  <img src="./assets/slothrag.svg" alt="SlothRag" width="40" height="40" style="vertical-align: middle; margin-right: 8px;">
+  SlothRag
+</h1>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white" alt="Java 21">
