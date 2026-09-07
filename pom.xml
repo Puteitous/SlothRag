@@ -37,6 +37,12 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- 密码加密（仅用 BCrypt，不引入完整 Spring Security 的自动配置墙） -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
         <!-- 数据层：PostgreSQL + pgvector（向量列） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
