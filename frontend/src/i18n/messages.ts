@@ -27,6 +27,12 @@ const zh: Record<string, string> = {
   'chat.stop': '停止',
   'chat.heroTitle': '你好，我是 ragbase 知识库助手',
   'chat.heroSubtitle': '基于已入库文档回答你的问题，答案附带来源引用',
+  'chat.themeLabel': '主题：{theme}',
+
+  // 应用导航
+  'app.nav.chat': '聊天',
+  'app.nav.admin': '管理后台',
+  'app.title': 'ragbase',
 };
 
 /** 英文未单独维护,回退中文 */

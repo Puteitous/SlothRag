@@ -14,6 +14,7 @@ import { useSessionStream } from '@/hooks/useSessionStream';
 import { useI18n } from '@/i18n';
 import { HistoryRenderer } from './HistoryRenderer';
 import { ChatEmptyHero } from './ChatEmptyHero';
+import { ThemeSwitch } from '@/components/ThemeSwitch';
 import InlineInput from './InlineInput';
 import type { InlineInputHandle } from './InlineInput';
 import './ChatPanel.css';
@@ -103,7 +104,7 @@ export function ChatPanel() {
 
   return (
     <div className="chat-panel">
-      {/* 顶部栏:标题 + 知识库选择 + 新建会话 */}
+      {/* 顶部栏:标题 + 知识库选择 + 主题切换 + 新建会话 */}
       <div className="chat-panel-header">
         <span className="chat-panel-title">{t('chat.appTitle')}</span>
         {kbs.length > 0 && (
@@ -120,6 +121,7 @@ export function ChatPanel() {
             ))}
           </select>
         )}
+        <ThemeSwitch />
         <button
           type="button"
           className="chat-panel-new-btn"

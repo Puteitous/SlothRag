@@ -30,3 +30,42 @@ export interface KbItem {
   embeddingModel?: string;
   docCount?: number;
 }
+
+// ============================================================================
+// 管理后台类型（对齐后端 knowledge.domain.* / common.web.PageResult）
+// ============================================================================
+
+/** 分页返回结构 */
+export interface PageResult<T> {
+  list: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** 文档 */
+export interface DocItem {
+  id: number;
+  kbId: number;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  status: 'PENDING' | 'PARSING' | 'CHUNKING' | 'INDEXED' | 'FAILED';
+  chunkCount?: number;
+  errorMsg?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** 入库任务 */
+export interface IngestTaskItem {
+  id: number;
+  docId: number;
+  kbId: number;
+  status: 'QUEUED' | 'RUNNING' | 'SUCCESS' | 'FAILED';
+  progress: number;
+  currentStage?: string;
+  errorMsg?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
