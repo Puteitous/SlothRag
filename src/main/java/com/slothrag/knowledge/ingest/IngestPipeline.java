@@ -1,6 +1,7 @@
 package com.slothrag.knowledge.ingest;
 
 import com.slothrag.ai.embedding.EmbeddingClient;
+import com.slothrag.knowledge.chunk.ChunkDraft;
 import com.slothrag.knowledge.chunk.ChunkStrategy;
 import com.slothrag.knowledge.dao.ChunkDao;
 import com.slothrag.knowledge.dao.DocDao;
@@ -8,6 +9,7 @@ import com.slothrag.knowledge.dao.IngestTaskDao;
 import com.slothrag.knowledge.domain.Chunk;
 import com.slothrag.knowledge.domain.Doc;
 import com.slothrag.knowledge.domain.IngestTask;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -44,44 +46,47 @@ public class IngestPipeline {
             docDao.updateStatus(docId, Doc.STATUS_PARSING);
             ingestTaskDao.updateProgress(taskId, 10, "PARSE");
 
-            // 1. 解析
-            String text = documentParser.parse(file);
-            log.info("文档解析完成 docId={}, 文本长度={}", docId, text.length());
+            // 1. 解析为结构块（Block-Aware）
+            var blocks = documentParser.parseToBlocks(file);
+            log.info("文档解析完成 docId={}, block数={}", docId, blocks.size());
 
-            // 2. 分块
+            // 2. Block-Aware 分块
             docDao.updateStatus(docId, Doc.STATUS_CHUNKING);
             ingestTaskDao.updateProgress(taskId, 40, "CHUNK");
-            List<String> chunks = chunkStrategy.split(text);
-            if (chunks.isEmpty()) {
+            List<ChunkDraft> drafts = chunkStrategy.splitToDrafts(blocks, kbId);
+            if (drafts.isEmpty()) {
                 throw new RuntimeException("文档解析后无可分块内容");
             }
-            log.info("分块完成 docId={}, 块数={}", docId, chunks.size());
+            log.info("分块完成 docId={}, 块数={}", docId, drafts.size());
 
             // 3. Embedding
             ingestTaskDao.updateProgress(taskId, 60, "EMBED");
-            List<float[]> vectors = embeddingClient.embed(chunks);
-            if (vectors.size() != chunks.size()) {
+            List<String> contents = drafts.stream().map(ChunkDraft::content).toList();
+            List<float[]> vectors = embeddingClient.embed(contents);
+            if (vectors.size() != drafts.size()) {
                 throw new RuntimeException("Embedding 结果数量与分块数不一致");
             }
 
-            // 4. 批量写库
+            // 4. 批量写库（含 heading_path）
             ingestTaskDao.updateProgress(taskId, 80, "INDEX");
-            List<Chunk> chunkEntities = new ArrayList<>(chunks.size());
-            for (int i = 0; i < chunks.size(); i++) {
+            List<Chunk> chunkEntities = new ArrayList<>(drafts.size());
+            for (int i = 0; i < drafts.size(); i++) {
+                ChunkDraft draft = drafts.get(i);
                 Chunk c = new Chunk();
                 c.setDocId(docId);
                 c.setKbId(kbId);
                 c.setSeq(i);
-                c.setContent(chunks.get(i));
+                c.setContent(draft.content());
+                c.setHeadingPath(draft.headingPath());
                 c.setVector(vectors.get(i));
                 chunkEntities.add(c);
             }
             chunkDao.batchInsert(chunkEntities);
 
             // 5. 收尾
-            docDao.updateChunkCount(docId, chunks.size());
+            docDao.updateChunkCount(docId, drafts.size());
             ingestTaskDao.updateStatus(taskId, IngestTask.STATUS_SUCCESS, null);
-            log.info("入库完成 docId={}, 入库块数={}", docId, chunks.size());
+            log.info("入库完成 docId={}, 入库块数={}", docId, drafts.size());
         } catch (Exception e) {
             log.error("入库失败 docId={}", docId, e);
             docDao.markFailed(docId, e.getMessage());

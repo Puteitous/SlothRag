@@ -1,5 +1,7 @@
 package com.slothrag.knowledge.ingest;
 
+import com.slothrag.knowledge.chunk.BlockAwareChunker;
+import com.slothrag.knowledge.chunk.ChunkPacker;
 import com.slothrag.knowledge.chunk.ChunkStrategy;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -27,8 +29,12 @@ class DocumentParserIntegrationTest {
 
     @BeforeAll
     static void setUp() {
-        parser = new DocumentParser();
-        chunkStrategy = new ChunkStrategy();
+        // 所有依赖都是纯逻辑类，无外部依赖，直接构造
+        TextBlockExtractor extractor = new TextBlockExtractor();
+        parser = new DocumentParser(extractor);
+        BlockAwareChunker blockAwareChunker = new BlockAwareChunker();
+        ChunkPacker chunkPacker = new ChunkPacker();
+        chunkStrategy = new ChunkStrategy(blockAwareChunker, chunkPacker);
     }
 
     @ParameterizedTest(name = "解析 [{0}] 应返回非空文本")

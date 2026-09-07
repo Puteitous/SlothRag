@@ -31,7 +31,7 @@ public class ChunkDao {
         if (chunks == null || chunks.isEmpty()) {
             return;
         }
-        String sql = "INSERT INTO chunk (doc_id, kb_id, seq, content, vector) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO chunk (doc_id, kb_id, seq, content, heading_path, vector) VALUES (?, ?, ?, ?, ?, ?)";
         jdbc.batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps, int i) throws SQLException {
@@ -40,7 +40,8 @@ public class ChunkDao {
                 ps.setLong(2, chunk.getKbId());
                 ps.setInt(3, chunk.getSeq());
                 ps.setString(4, chunk.getContent());
-                ps.setObject(5, chunk.getVector() == null ? null : new PGvector(chunk.getVector()));
+                ps.setString(5, chunk.getHeadingPath());
+                ps.setObject(6, chunk.getVector() == null ? null : new PGvector(chunk.getVector()));
             }
 
             @Override

@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS chunk (
     kb_id       BIGINT          NOT NULL REFERENCES kb (id) ON DELETE CASCADE,
     seq         INT             NOT NULL, -- 块在文档内的序号
     content     TEXT            NOT NULL,
+    heading_path VARCHAR(512),            -- 章节路径（如"第二章 > 2.1 > 架构"），用于来源追溯
     vector      vector(1024),
     created_at  TIMESTAMPTZ     NOT NULL DEFAULT now()
 );
