@@ -7,6 +7,7 @@ import com.slothrag.knowledge.dao.DocDao;
 import com.slothrag.knowledge.dao.IngestTaskDao;
 import com.slothrag.knowledge.domain.Chunk;
 import com.slothrag.knowledge.domain.Doc;
+import com.slothrag.knowledge.domain.IngestTask;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -79,17 +80,12 @@ public class IngestPipeline {
 
             // 5. 收尾
             docDao.updateChunkCount(docId, chunks.size());
-            ingestTaskDao.updateStatus(taskId, IngestTaskStatus.SUCCESS, null);
+            ingestTaskDao.updateStatus(taskId, IngestTask.STATUS_SUCCESS, null);
             log.info("入库完成 docId={}, 入库块数={}", docId, chunks.size());
         } catch (Exception e) {
             log.error("入库失败 docId={}", docId, e);
             docDao.markFailed(docId, e.getMessage());
-            ingestTaskDao.updateStatus(taskId, IngestTaskStatus.FAILED, e.getMessage());
+            ingestTaskDao.updateStatus(taskId, IngestTask.STATUS_FAILED, e.getMessage());
         }
-    }
-
-    private static final class IngestTaskStatus {
-        static final String SUCCESS = "SUCCESS";
-        static final String FAILED = "FAILED";
     }
 }

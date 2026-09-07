@@ -215,7 +215,7 @@
 .chat-panel-input-status-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0 8px 8px 8px;
   user-select: none;
   min-height: 28px;

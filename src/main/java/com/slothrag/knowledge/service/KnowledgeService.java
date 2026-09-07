@@ -8,11 +8,10 @@ import com.slothrag.knowledge.dao.KbDao;
 import com.slothrag.knowledge.domain.Doc;
 import com.slothrag.knowledge.domain.IngestTask;
 import com.slothrag.knowledge.domain.Kb;
-import com.slothrag.knowledge.ingest.IngestPipeline;
+import com.slothrag.knowledge.ingest.IngestAsyncRunner;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,7 +35,7 @@ public class KnowledgeService {
     private final KbDao kbDao;
     private final DocDao docDao;
     private final IngestTaskDao ingestTaskDao;
-    private final IngestPipeline ingestPipeline;
+    private final IngestAsyncRunner ingestAsyncRunner;
 
     @Value("${kb.storage-dir}")
     private String storageDir;
@@ -79,7 +78,7 @@ public class KnowledgeService {
         task.setProgress(0);
         Long taskId = ingestTaskDao.insert(task);
 
-        runIngestAsync(docId, kbId, savedPath, taskId);
+        ingestAsyncRunner.runAsync(docId, kbId, savedPath, taskId);
         return taskId;
     }
 
@@ -117,7 +116,7 @@ public class KnowledgeService {
         }
         ingestTaskDao.resetForRetry(taskId);
         docDao.resetStatus(doc.getId());
-        runIngestAsync(doc.getId(), doc.getKbId(), Path.of(doc.getFilePath()), taskId);
+        ingestAsyncRunner.runAsync(doc.getId(), doc.getKbId(), Path.of(doc.getFilePath()), taskId);
     }
 
     private void validateStatus(String status) {
@@ -232,11 +231,5 @@ public class KnowledgeService {
         } catch (IOException e) {
             throw new BizException("FILE_SAVE_ERROR", "文件保存失败: " + e.getMessage());
         }
-    }
-
-    @Async
-    protected void runIngestAsync(Long docId, Long kbId, Path file, Long taskId) {
-        ingestTaskDao.updateStatus(taskId, IngestTask.STATUS_RUNNING, null);
-        ingestPipeline.execute(docId, kbId, file, taskId);
     }
 }

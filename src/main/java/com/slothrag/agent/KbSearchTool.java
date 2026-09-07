@@ -65,6 +65,9 @@ public class KbSearchTool {
         List<Map<String, Object>> sources = new ArrayList<>();
         for (SearchService.SearchResultItem hit : hits) {
             String c = hit.content();
+            if (c == null) {
+                continue;
+            }
             sources.add(Map.of("source", c.length() > 80 ? c.substring(0, 80) + "…" : c));
         }
         return sources;

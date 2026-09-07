@@ -77,8 +77,9 @@ public class OpenAiCompatibleEmbeddingClient implements EmbeddingClient {
 
             try (Response response = http.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
+                    String errBody = response.body() == null ? "" : response.body().string();
                     throw new BizException("EMBEDDING_ERROR",
-                            "Embedding 调用失败: HTTP " + response.code() + " " + response.body() == null ? "" : response.body().string());
+                            "Embedding 调用失败: HTTP " + response.code() + " " + errBody);
                 }
                 JsonNode root = mapper.readTree(response.body().string());
                 List<float[]> vectors = new ArrayList<>(texts.size());

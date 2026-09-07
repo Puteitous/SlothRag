@@ -22,6 +22,15 @@ src/main/resources/application.yml
 # ===== 环境变量文件（可能含 API key，绝不提交）=====
 .env
 
+# ===== 测试数据（生成物和本地脚本，不提交）=====
+test-data/sample.docx
+test-data/sample.md
+test-data/sample.pdf
+test-data/sample.pptx
+test-data/sample.xlsx
+test-data/fix_kb_name.sql
+test-data/upload_all.ps1
+
 # ===== 日志 =====
 *.log
 logs/
