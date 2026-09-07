@@ -1,62 +1,62 @@
 # SlothRag
 
-A RAG knowledge base Q&A system with AI-powered chat, document ingestion, and conversation management.
+基于 RAG 的知识库问答系统，支持 AI 对话、文档导入与对话管理。
 
-## Features
+## 功能概览
 
-| Feature | Description |
+| 功能 | 说明 |
 |---|---|
-| **AI Chat** | Streaming chat with LLM, real-time response |
-| **RAG Search** | Knowledge base retrieval with rerank |
-| **Document Ingestion** | Parse, chunk, and embed documents (PDF, DOCX, PPTX, XLSX, MD) |
-| **Knowledge Base** | Manage KBs, browse docs, monitor ingest tasks |
-| **Conversation History** | Session management with history replay |
-| **Agent Tools** | Knowledge search tool integration |
-| **Admin Panel** | Auth, KB management, task monitoring |
-| **Theme** | Light / dark mode switch |
+| **AI 对话** | 流式对话，实时响应 |
+| **RAG 检索** | 知识库检索 + Rerank 重排序 |
+| **文档导入** | 支持 PDF、DOCX、PPTX、XLSX、MD 等格式解析、分块与向量化 |
+| **知识库管理** | 创建知识库、管理文档、监控导入任务 |
+| **对话历史** | 会话管理，支持历史记录回显 |
+| **Agent 工具** | 知识搜索工具调用 |
+| **管理后台** | 登录认证、知识库管理、任务监控 |
+| **主题切换** | 明暗两种主题自由切换 |
 
-## Tech Stack
+## 技术栈
 
-| Layer | Technology |
+| 层 | 技术 |
 |---|---|
-| Frontend | React 18, TypeScript, Zustand, Ant Design |
-| Backend | Java 21, Spring Boot, Virtual Threads |
-| AI | OpenAI-compatible LLM / Embedding / Rerank |
-| Database | PostgreSQL + pg_jieba (Chinese tokenizer) |
-| Build | Maven, Vite |
-| Deploy | Docker, docker-compose |
+| 前端 | React 18, TypeScript, Zustand, Ant Design |
+| 后端 | Java 21, Spring Boot, 虚拟线程 |
+| AI | OpenAI 兼容接口（LLM / Embedding / Rerank） |
+| 数据库 | PostgreSQL + pg_jieba（中文分词） |
+| 构建 | Maven, Vite |
+| 部署 | Docker, docker-compose |
 
-## Quick Start
+## 快速开始
 
-### Prerequisites
+### 环境要求
 
 - Java 21
 - Node.js 20+
 - PostgreSQL 16+
 - Maven 3.9+
 
-### Start with Docker
+### Docker 启动
 
 ```bash
 docker compose up -d
 ```
 
-### Start manually
+### 手动启动
 
 ```bash
-# 1. Backend
+# 1. 编译后端
 mvn package -DskipTests
 java -jar target/slothrag-*.jar
 
-# 2. Frontend
+# 2. 启动前端
 cd frontend
 npm install
 npm run dev
 ```
 
-### Configuration
+### 配置说明
 
-Edit `src/main/resources/application.yml`:
+编辑 `src/main/resources/application.yml`：
 
 ```yaml
 ai:
@@ -70,32 +70,32 @@ ai:
     api-key: your-api-key
 ```
 
-## Project Structure
+## 项目结构
 
 ```
 src/main/java/com/slothrag/
-├── admin/auth/              Auth & user management
-├── agent/                   Agent tools
-├── ai/                      LLM, embedding, rerank clients
-├── chat/                    Chat controller & service
-├── common/web/              Common utilities
-├── config/                  Configuration
-├── conversation/            Conversation management
-├── knowledge/               Knowledge base & ingestion
-├── search/                  Search service
-└── session/                 Session store
+├── admin/auth/              认证与用户管理
+├── agent/                   工具调用
+├── ai/                      LLM、Embedding、Rerank 客户端
+├── chat/                    聊天控制器与服务
+├── common/web/              通用工具
+├── config/                  配置
+├── conversation/            对话管理
+├── knowledge/               知识库与文档导入
+├── search/                  检索服务
+└── session/                 会话存储
 
 frontend/src/
-├── admin/                   Admin pages
-├── api/                     API clients
-├── components/              UI components
-├── hooks/                   Custom hooks
-├── i18n/                    Internationalization
-├── stores/                  Zustand stores
-├── types/                   TypeScript types
-└── utils/                   Utilities
+├── admin/                   管理后台页面
+├── api/                     API 客户端
+├── components/              UI 组件
+├── hooks/                   自定义 Hooks
+├── i18n/                    国际化
+├── stores/                  Zustand 状态管理
+├── types/                   TypeScript 类型定义
+└── utils/                   工具函数
 ```
 
-## License
+## 开源协议
 
 [Apache License 2.0](./LICENSE)
