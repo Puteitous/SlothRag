@@ -1,9 +1,9 @@
 /**
  * ragbase 后端 API 客户端
  */
-import { getJson, postJson, deleteJson } from './http';
+import { getJson, postJson, deleteJson, authHeaders } from './http';
 import { streamSse } from './sse';
-import type { DocItem, IngestTaskItem, KbItem, PageResult } from '@/types';
+import type { ConversationItem, DocItem, IngestTaskItem, KbItem, PageResult } from '@/types';
 import type { ChatSseEventName } from '@/types/sse';
 
 /** 统一响应体(ragbase Result 包装) */
@@ -12,6 +12,19 @@ interface ApiResult<T> {
   message: string;
   data: T;
 }
+
+/** 后台登录认证 */
+export const authApi = {
+  /** 登录,返回 token + username */
+  login: async (username: string, password: string): Promise<{ token: string; username: string }> => {
+    const res = await postJson<ApiResult<{ token: string; username: string }>>('/api/auth/login', {
+      username,
+      password,
+    });
+    if (res.code !== '0') throw new Error(res.message);
+    return res.data;
+  },
+};
 
 /** 知识库管理 */
 export const kbApi = {
@@ -50,7 +63,11 @@ export const kbApi = {
   uploadDoc: async (kbId: number, file: File): Promise<number> => {
     const form = new FormData();
     form.append('file', file);
-    const res = await fetch(`/api/kb/${kbId}/docs`, { method: 'POST', body: form });
+    const res = await fetch(`/api/kb/${kbId}/docs`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: form,
+    });
     const body = (await res.json()) as ApiResult<{ taskId: number }>;
     if (body.code !== '0') throw new Error(body.message);
     return body.data.taskId;
@@ -107,5 +124,32 @@ export const chatApi = {
     const params = new URLSearchParams({ question, kbId: String(kbId) });
     if (conversationId) params.set('conversationId', conversationId);
     return streamSse(`/api/chat?${params.toString()}`, onEvent, signal);
+  },
+};
+
+/** 历史会话 */
+export const conversationApi = {
+  /** 会话列表(最近活跃在前) */
+  list: async (page = 1, pageSize = 20): Promise<PageResult<ConversationItem>> => {
+    const res = await getJson<ApiResult<PageResult<ConversationItem>>>(
+      `/api/conversations?page=${page}&pageSize=${pageSize}`,
+    );
+    if (res.code !== '0') throw new Error(res.message);
+    return res.data;
+  },
+
+  /** 删除会话(记录 + JSONL 文件) */
+  remove: async (sessionId: string): Promise<void> => {
+    const res = await deleteJson<ApiResult<void>>(`/api/conversations/${sessionId}`);
+    if (res.code !== '0') throw new Error(res.message);
+  },
+
+  /** 读取会话全部历史消息(按写入顺序,仅 role/content) */
+  messages: async (sessionId: string): Promise<{ role: string; content: string }[]> => {
+    const res = await getJson<ApiResult<{ role: string; content: string }[]>>(
+      `/api/conversations/${sessionId}/messages`,
+    );
+    if (res.code !== '0') throw new Error(res.message);
+    return res.data;
   },
 };

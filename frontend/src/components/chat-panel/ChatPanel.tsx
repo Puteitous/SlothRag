@@ -9,11 +9,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppStore } from '@/stores/appStore';
 import { useChatStore } from '@/stores/chatStore';
+import { useConversationListStore } from '@/stores/conversationListStore';
 import { useChatStream } from '@/hooks/useChatStream';
 import { useSessionStream } from '@/hooks/useSessionStream';
 import { useI18n } from '@/i18n';
 import { HistoryRenderer } from './HistoryRenderer';
 import { ChatEmptyHero } from './ChatEmptyHero';
+import { ConversationSidebar } from './ConversationSidebar';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 import InlineInput from './InlineInput';
 import type { InlineInputHandle } from './InlineInput';
@@ -26,8 +28,11 @@ export function ChatPanel() {
   const loadKbs = useAppStore((s) => s.loadKbs);
   const setCurrentKbId = useAppStore((s) => s.setCurrentKbId);
   const { messages, isSending, error } = useSessionStream();
+  const historyLoading = useChatStore((s) => s.historyLoading);
   const reset = useChatStore((s) => s.reset);
   const { send, abort } = useChatStream();
+  const loadConversations = useConversationListStore((s) => s.load);
+  const conversationId = useChatStore((s) => s.conversationId);
 
   // 行内输入框引用与发送按钮禁用态
   const inlineInputRef = useRef<InlineInputHandle | null>(null);
@@ -37,6 +42,14 @@ export function ChatPanel() {
   useEffect(() => {
     void loadKbs();
   }, [loadKbs]);
+
+  // 首帧加载历史会话；新会话产生(会话 id 变为非空)时刷新列表
+  useEffect(() => {
+    void loadConversations();
+  }, [loadConversations]);
+  useEffect(() => {
+    if (conversationId) void loadConversations();
+  }, [conversationId, loadConversations]);
 
   // ── 自动滚动 ──────────────────────────────────────────────
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -100,121 +113,124 @@ export function ChatPanel() {
     });
   }, []);
 
-  const showHero = messages.length === 0;
+  const showHero = messages.length === 0 && !historyLoading;
 
   return (
     <div className="chat-panel">
-      {/* 顶部栏:标题 + 知识库选择 + 主题切换 + 新建会话 */}
-      <div className="chat-panel-header">
-        <span className="chat-panel-title">{t('chat.appTitle')}</span>
-        {kbs.length > 0 && (
-          <select
-            className="chat-panel-kb-select"
-            value={currentKbId ?? ''}
-            onChange={(e) => setCurrentKbId(Number(e.target.value))}
-            title={t('chat.selectKb')}
-          >
-            {kbs.map((kb) => (
-              <option key={kb.id} value={kb.id}>
-                {kb.name}
-              </option>
-            ))}
-          </select>
-        )}
-        <ThemeSwitch />
-        <button
-          type="button"
-          className="chat-panel-new-btn"
-          onClick={handleNewSession}
-          title={t('chat.newSession')}
-          aria-label={t('chat.newSession')}
-        >
-          {t('chat.newSession')}
-        </button>
-      </div>
-
-      {/* 空态欢迎屏 / 消息区 */}
-      {showHero ? (
-        <ChatEmptyHero onPresetSelect={handlePresetSelect} />
-      ) : (
-        <div
-          ref={messagesContainerRef}
-          className="chat-panel-messages"
-          onScroll={handleScroll}
-        >
-          <HistoryRenderer />
-          {error && (
-            <div className="chat-panel-error">
-              <strong>{t('chat.error')}:</strong> {error}
-            </div>
+      <ConversationSidebar />
+      <div className="chat-panel-main">
+        {/* 顶部栏:标题 + 知识库选择 + 主题切换 + 新建会话 */}
+        <div className="chat-panel-header">
+          <span className="chat-panel-title">{t('chat.appTitle')}</span>
+          {kbs.length > 0 && (
+            <select
+              className="chat-panel-kb-select"
+              value={currentKbId ?? ''}
+              onChange={(e) => setCurrentKbId(Number(e.target.value))}
+              title={t('chat.selectKb')}
+            >
+              {kbs.map((kb) => (
+                <option key={kb.id} value={kb.id}>
+                  {kb.name}
+                </option>
+              ))}
+            </select>
           )}
-          <div ref={messagesEndRef} className="chat-panel-anchor" />
-        </div>
-      )}
-
-      {/* 输入区(始终显示) */}
-      <div className="chat-panel-input-area">
-        {showScrollHint && (
+          <ThemeSwitch />
           <button
             type="button"
-            className="new-msg-hint"
-            onClick={handleScrollToBottom}
-            title={t('chat.scrollToBottom')}
-            aria-label={t('chat.scrollToBottom')}
+            className="chat-panel-new-btn"
+            onClick={handleNewSession}
+            title={t('chat.newSession')}
+            aria-label={t('chat.newSession')}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+            {t('chat.newSession')}
           </button>
-        )}
-        <div className="chat-panel-input-card">
-          <div className="chat-panel-input-row">
-            <InlineInput
-              ref={inlineInputRef}
-              placeholder={t('chat.inputPlaceholder')}
-              onSend={handleSend}
-              onContentChange={handleContentChange}
-            />
+        </div>
+
+        {/* 空态欢迎屏 / 消息区 */}
+        {showHero ? (
+          <ChatEmptyHero onPresetSelect={handlePresetSelect} />
+        ) : (
+          <div
+            ref={messagesContainerRef}
+            className="chat-panel-messages"
+            onScroll={handleScroll}
+          >
+            <HistoryRenderer />
+            {error && (
+              <div className="chat-panel-error">
+                <strong>{t('chat.error')}:</strong> {error}
+              </div>
+            )}
+            <div ref={messagesEndRef} className="chat-panel-anchor" />
           </div>
-          <div className="chat-panel-input-status-bar">
-            <div className="chat-panel-status-actions">
-              {isSending ? (
-                <button
-                  type="button"
-                  className="chat-panel-abort-btn"
-                  onClick={abort}
-                  title={t('chat.stop')}
-                  aria-label={t('chat.stop')}
-                >
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" aria-hidden>
-                    <rect x="6" y="6" width="12" height="12" rx="2" />
-                  </svg>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="chat-panel-send-btn"
-                  onClick={handleSend}
-                  disabled={!hasInputContent}
-                  title={t('chat.sendMessage')}
-                  aria-label={t('chat.sendMessage')}
-                >
-                  <svg
-                    viewBox="0 0 16 16"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
+        )}
+
+        {/* 输入区(始终显示) */}
+        <div className="chat-panel-input-area">
+          {showScrollHint && (
+            <button
+              type="button"
+              className="new-msg-hint"
+              onClick={handleScrollToBottom}
+              title={t('chat.scrollToBottom')}
+              aria-label={t('chat.scrollToBottom')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+          )}
+          <div className="chat-panel-input-card">
+            <div className="chat-panel-input-row">
+              <InlineInput
+                ref={inlineInputRef}
+                placeholder={t('chat.inputPlaceholder')}
+                onSend={handleSend}
+                onContentChange={handleContentChange}
+              />
+            </div>
+            <div className="chat-panel-input-status-bar">
+              <div className="chat-panel-status-actions">
+                {isSending ? (
+                  <button
+                    type="button"
+                    className="chat-panel-abort-btn"
+                    onClick={abort}
+                    title={t('chat.stop')}
+                    aria-label={t('chat.stop')}
                   >
-                    <line x1="8" y1="15" x2="8" y2="1" />
-                    <polyline points="2 7 8 1 14 7" />
-                  </svg>
-                </button>
-              )}
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" aria-hidden>
+                      <rect x="6" y="6" width="12" height="12" rx="2" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="chat-panel-send-btn"
+                    onClick={handleSend}
+                    disabled={!hasInputContent}
+                    title={t('chat.sendMessage')}
+                    aria-label={t('chat.sendMessage')}
+                  >
+                    <svg
+                      viewBox="0 0 16 16"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <line x1="8" y1="15" x2="8" y2="1" />
+                      <polyline points="2 7 8 1 14 7" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

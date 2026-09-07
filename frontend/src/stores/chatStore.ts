@@ -11,8 +11,8 @@
  *        → 流结束(正常/中断/错误)后置 isStreaming=false 固化
  */
 import { create } from 'zustand';
-import { chatApi } from '@/api/client';
-import type { Message, SourceItem } from '@/types';
+import { chatApi, conversationApi } from '@/api/client';
+import type { Message, MessageRole, SourceItem } from '@/types';
 
 interface ChatState {
   /** 已固化 + 乐观追加的消息(最后一条 assistant 可能处于流式态) */
@@ -21,6 +21,8 @@ interface ChatState {
   conversationId: string | null;
   /** 是否正在流式回答 */
   isSending: boolean;
+  /** 是否正在拉取历史会话消息 */
+  historyLoading: boolean;
   /** 错误信息(null=无) */
   error: string | null;
   /** 发送问题(基于指定知识库) */
@@ -29,6 +31,8 @@ interface ChatState {
   abort: () => void;
   /** 清空当前会话(新建对话) */
   reset: () => void;
+  /** 切换到已有会话:拉取并渲染历史消息,绑定该会话 id 以续接 */
+  startSession: (sessionId: string) => Promise<void>;
 }
 
 let messageSeq = 0;
@@ -41,6 +45,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   conversationId: null,
   isSending: false,
+  historyLoading: false,
   error: null,
 
   send: async (question, kbId) => {
@@ -123,6 +128,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
   reset: () => {
     activeController?.abort();
     activeController = null;
-    set({ messages: [], conversationId: null, isSending: false, error: null });
+    set({ messages: [], conversationId: null, isSending: false, historyLoading: false, error: null });
+  },
+
+  startSession: async (sessionId) => {
+    activeController?.abort();
+    activeController = null;
+    set({ messages: [], conversationId: sessionId, isSending: false, historyLoading: true, error: null });
+    try {
+      const raw = await conversationApi.messages(sessionId);
+      const messages: Message[] = raw
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .map((m) => ({
+          id: nextId(m.role),
+          role: m.role as MessageRole,
+          content: m.content,
+          timestamp: Date.now(),
+        }));
+      set({ messages, historyLoading: false });
+    } catch (err) {
+      set({ error: (err as Error).message, historyLoading: false });
+    }
   },
 }));

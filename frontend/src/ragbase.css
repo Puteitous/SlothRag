@@ -262,3 +262,36 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
+
+/* ===== 后台登录页 ===== */
+.admin-page-user {
+  margin-left: auto;
+  margin-right: 4px;
+  font-size: var(--font-size-sm, 13px);
+  color: var(--text-secondary);
+}
+
+.admin-login {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg-canvas, var(--bg-app));
+}
+
+.admin-login-card {
+  width: 100%;
+  max-width: 340px;
+  padding: 28px 24px 8px;
+  background: var(--bg-card, var(--bg-app));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.admin-login-title {
+  text-align: center;
+  margin-bottom: 24px !important;
+}

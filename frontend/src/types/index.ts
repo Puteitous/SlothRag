@@ -69,3 +69,16 @@ export interface IngestTaskItem {
   createdAt?: string;
   updatedAt?: string;
 }
+
+// ============================================================================
+// 会话（历史会话列表）
+// ============================================================================
+
+/** 会话元数据 - GET /api/conversations */
+export interface ConversationItem {
+  id: number;
+  sessionId: string;
+  title?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}

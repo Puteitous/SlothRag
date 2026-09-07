@@ -39,6 +39,18 @@ public class SessionStore {
     }
 
     /**
+     * 删除会话文件（与 conversation 记录删除配套，不存在时静默）
+     */
+    public void deleteSessionFile(String sessionId) {
+        Path file = sessionDir.resolve(sessionId + ".jsonl");
+        try {
+            Files.deleteIfExists(file);
+        } catch (IOException e) {
+            log.warn("删除会话文件失败 sessionId={}", sessionId, e);
+        }
+    }
+
+    /**
      * 追加一条消息到会话文件
      */
     public synchronized void appendMessage(String sessionId, ChatMessage message) {

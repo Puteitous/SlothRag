@@ -4,6 +4,7 @@ import { useI18n } from '@/i18n';
 
 // 管理后台懒加载:聊天首屏不引入 antd
 const AdminPage = lazy(() => import('@/admin/AdminPage'));
+const AdminGuard = lazy(() => import('@/admin/AdminGuard'));
 
 export default function App() {
   const { t } = useI18n();
@@ -31,7 +32,9 @@ export default function App() {
         <ChatPanel />
       ) : (
         <Suspense fallback={<div className="app-loading" />}>
-          <AdminPage />
+          <AdminGuard>
+            <AdminPage />
+          </AdminGuard>
         </Suspense>
       )}
     </div>

@@ -5,6 +5,7 @@ import com.ragbase.ai.llm.OpenAiCompatibleLlmClient;
 import com.ragbase.ai.llm.StreamCallback;
 import com.ragbase.config.ChatProperties;
 import com.ragbase.config.SearchProperties;
+import com.ragbase.conversation.ConversationService;
 import com.ragbase.search.service.SearchService;
 import com.ragbase.session.SessionStore;
 import lombok.RequiredArgsConstructor;
@@ -24,19 +25,19 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 问答服务：检索 → 组装上下文 → LLM 流式回答（SSE）
+ * <p>
+ * 证据判定策略（参考 ragent）：不再用检索分数硬拒。检索无证据时放行给 LLM，
+ * 由 system prompt 按问题类型引导模型自行判断（闲聊友好答 / 库内无依据按话术拒）。
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatService {
 
-    private static final String SYSTEM_PROMPT =
+    /** 有检索上下文时的强约束提示 */
+    private static final String SYSTEM_PROMPT_WITH_CONTEXT =
             "你是一个基于知识库回答问题的助手。请严格依据提供的知识内容回答，不要编造或添加知识中没有的信息。" +
-            "若知识内容中没有任何依据可以回答该问题，你必须原样回答【很抱歉，这个问题超出了当前知识范围，建议联系人工客服（转8001）进行咨询。】，禁止猜测或编造。" +
             "回答时可在相关结论后标注来源编号，如【来源1】。";
-
-    /** 被拒问题的答案落盘文案（与配置话术保持一致性） */
-    private static final String REJECTED_ANSWER = "抱歉，该问题超出当前知识范围。";
 
     /** SSE 增量缓冲：时间窗（毫秒）与字数阈值，避免逐字事件 */
     private static final long FLUSH_INTERVAL_MS = 80;
@@ -53,6 +54,7 @@ public class ChatService {
     private final SearchService searchService;
     private final OpenAiCompatibleLlmClient llmClient;
     private final SessionStore sessionStore;
+    private final ConversationService conversationService;
     private final ChatProperties chatProperties;
     private final SearchProperties searchProperties;
 
@@ -64,6 +66,8 @@ public class ChatService {
     public void streamChat(String question, Long kbId, String conversationId, SseEmitter emitter) {
         try {
             String sessionId = StringUtils.hasText(conversationId) ? conversationId : sessionStore.newSessionId();
+            // 会话元数据登录：首问建会话（title=首问），续接滚动 updated_at
+            conversationService.upsert(sessionId, question);
             emitter.send(SseEmitter.event().name("session").data(sessionId));
 
             // 历史全量加载（稳定前缀）+ 追加本轮问题
@@ -72,60 +76,21 @@ public class ChatService {
 
             List<SearchService.SearchResultItem> hits = searchService.search(question, kbId);
 
-            // 边界处理（证据闸门）：空结果，或整批最高分低于阈值 → 拒绝回答
-            // 判据优先用 Rerank 分（更准），未打分时回退到向量相似度
-            if (hits.isEmpty() || belowGate(hits)) {
-                sessionStore.appendMessage(sessionId, ChatMessage.assistant(REJECTED_ANSWER));
-                emitter.send(SseEmitter.event().name("delta").data(chatProperties.getOutOfScopeMessage()));
-                emitter.complete();
-                return;
-            }
+            // 无检索证据（空结果或整批最高分低于阈值）：放行给 LLM 自判，而非硬拒
+            boolean gated = hits.isEmpty() || belowGate(hits);
 
-            String context = buildContext(hits);
-            List<ChatMessage> messages = new ArrayList<>();
-            messages.add(ChatMessage.system(SYSTEM_PROMPT));
-            messages.addAll(history); // 多轮历史全量进 prompt
-            messages.add(ChatMessage.user("【知识内容】\n" + context + "\n\n【问题】" + question));
+            List<ChatMessage> messages = gated
+                    ? buildMessages(question, history, null)
+                    : buildMessages(question, history, buildContext(hits));
 
-            // 来源引用（用于回答结束后的 sources 事件）
-            List<Map<String, Object>> sources = hits.stream()
-                    .map(h -> Map.<String, Object>of(
-                            "source", h.content().length() > 80 ? h.content().substring(0, 80) + "…" : h.content()))
-                    .toList();
+            List<Map<String, Object>> sources = gated
+                    ? List.of()
+                    : hits.stream()
+                            .map(h -> Map.<String, Object>of(
+                                    "source", h.content().length() > 80 ? h.content().substring(0, 80) + "…" : h.content()))
+                            .toList();
 
-            DeltaBuffer buffer = new DeltaBuffer(emitter);
-            buffer.start();
-            StringBuilder fullAnswer = new StringBuilder();
-            llmClient.streamChat(messages, new StreamCallback() {
-                @Override
-                public void onDelta(String text) {
-                    buffer.append(text);
-                    fullAnswer.append(text);
-                }
-
-                @Override
-                public void onComplete() {
-                    buffer.stop();
-                    sessionStore.appendMessage(sessionId, ChatMessage.assistant(fullAnswer.toString()));
-                    try {
-                        emitter.send(SseEmitter.event().name("sources").data(sources));
-                        emitter.complete();
-                    } catch (IOException e) {
-                        log.debug("SSE 发送 sources 失败: {}", e.getMessage());
-                    }
-                }
-
-                @Override
-                public void onError(Throwable t) {
-                    buffer.stop();
-                    try {
-                        emitter.send(SseEmitter.event().name("error").data(t.getMessage()));
-                        emitter.complete();
-                    } catch (IOException e) {
-                        emitter.completeWithError(t);
-                    }
-                }
-            });
+            streamAnswer(emitter, sessionId, messages, sources);
         } catch (Exception e) {
             log.error("问答异常", e);
             try {
@@ -135,6 +100,110 @@ public class ChatService {
                 emitter.completeWithError(e);
             }
         }
+    }
+
+    /**
+     * 组装消息：有上下文则注入知识内容强约束回答；无上下文则仅传问题，
+     * 由分类 system prompt 引导模型判断该问题属于哪种类型并相应作答。
+     */
+    private List<ChatMessage> buildMessages(String question, List<ChatMessage> history, String context) {
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(ChatMessage.system(systemPrompt(context != null)));
+        messages.addAll(history); // 多轮历史全量进 prompt
+        String userContent = context == null
+                ? question
+                : "【知识内容】\n" + context + "\n\n【问题】" + question;
+        messages.add(ChatMessage.user(userContent));
+        return messages;
+    }
+
+    /**
+     * 分类 system prompt：无检索证据时让模型按问题类型自行判断，避免"你好"也被拒答
+     */
+    private String systemPrompt(boolean hasContext) {
+        if (hasContext) {
+            return SYSTEM_PROMPT_WITH_CONTEXT;
+        }
+        return "你是一个企业知识库问答助手。当前从知识库没能检索到相关内容，请先判断用户问题的类型再作答：\n"
+                + "1. 打招呼 / 闲聊（如“你好”“在吗”“谢谢”）：简短、友好地回应即可。\n"
+                + "2. 关于你自身的问题（如“你是谁”“你能做什么”）：简要介绍你是基于企业知识库的问答助手。\n"
+                + "3. 明显与知识库无关的通用问题：礼貌说明你主要服务于知识库范围内的问题。\n"
+                + "4. 属于知识库领域、但知识库暂未收录依据的问题：请务必原样回答“"
+                + chatProperties.getOutOfScopeMessage() + "”，不要猜测或编造。\n"
+                + "整体保持简洁、自然、友好。";
+    }
+
+    /**
+     * 统一的流式回答执行：增量缓冲、落盘、按需发送 sources、结束时 complete。
+     */
+    private void streamAnswer(SseEmitter emitter, String sessionId,
+                              List<ChatMessage> messages, List<Map<String, Object>> sources) {
+        DeltaBuffer buffer = new DeltaBuffer(emitter);
+        buffer.start();
+        StringBuilder fullAnswer = new StringBuilder();
+        llmClient.streamChat(messages, new StreamCallback() {
+            @Override
+            public void onDelta(String text) {
+                buffer.append(text);
+                fullAnswer.append(text);
+            }
+
+            @Override
+            public void onComplete() {
+                buffer.stop();
+                sessionStore.appendMessage(sessionId, ChatMessage.assistant(fullAnswer.toString()));
+                try {
+                    if (!sources.isEmpty()) {
+                        emitter.send(SseEmitter.event().name("sources").data(sources));
+                    }
+                    emitter.complete();
+                } catch (IOException e) {
+                    log.debug("SSE 发送 sources 失败: {}", e.getMessage());
+                }
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                buffer.stop();
+                try {
+                    emitter.send(SseEmitter.event().name("error").data(t.getMessage()));
+                    emitter.complete();
+                } catch (IOException e) {
+                    emitter.completeWithError(t);
+                }
+            }
+        });
+    }
+
+    /**
+     * 证据闸门：整批最高分低于阈值则视为无证据
+     * 有 Rerank 分时用 minRerankScore（判据更准），否则回退到向量相似度
+     */
+    private boolean belowGate(List<SearchService.SearchResultItem> hits) {
+        boolean hasRerankScore = hits.stream()
+                .anyMatch(h -> h.rerankScore() > SearchService.NO_RERANK_SCORE);
+        double gateScore;
+        double threshold;
+        if (hasRerankScore) {
+            gateScore = hits.stream()
+                    .mapToDouble(SearchService.SearchResultItem::rerankScore).max().orElse(0);
+            threshold = searchProperties.getMinRerankScore();
+        } else {
+            gateScore = hits.stream()
+                    .mapToDouble(SearchService.SearchResultItem::maxSimilarity).max().orElse(0);
+            threshold = chatProperties.getMinSimilarity();
+        }
+        return gateScore < threshold;
+    }
+
+    private String buildContext(List<SearchService.SearchResultItem> hits) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < hits.size(); i++) {
+            sb.append("【来源").append(i + 1).append("】\n")
+                    .append(hits.get(i).content())
+                    .append("\n\n");
+        }
+        return sb.toString();
     }
 
     /**
@@ -195,36 +264,5 @@ public class ChatService {
                 task.cancel(false);
             }
         }
-    }
-
-    /**
-     * 证据闸门：整批最高分低于阈值则拒绝
-     * 有 Rerank 分时用 minRerankScore（判据更准），否则回退 minSimilarity
-     */
-    private boolean belowGate(List<SearchService.SearchResultItem> hits) {
-        boolean hasRerankScore = hits.stream()
-                .anyMatch(h -> h.rerankScore() > SearchService.NO_RERANK_SCORE);
-        double gateScore;
-        double threshold;
-        if (hasRerankScore) {
-            gateScore = hits.stream()
-                    .mapToDouble(SearchService.SearchResultItem::rerankScore).max().orElse(0);
-            threshold = searchProperties.getMinRerankScore();
-        } else {
-            gateScore = hits.stream()
-                    .mapToDouble(SearchService.SearchResultItem::maxSimilarity).max().orElse(0);
-            threshold = chatProperties.getMinSimilarity();
-        }
-        return gateScore < threshold;
-    }
-
-    private String buildContext(List<SearchService.SearchResultItem> hits) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < hits.size(); i++) {
-            sb.append("【来源").append(i + 1).append("】\n")
-                    .append(hits.get(i).content())
-                    .append("\n\n");
-        }
-        return sb.toString();
     }
 }

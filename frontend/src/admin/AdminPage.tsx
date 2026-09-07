@@ -1,6 +1,8 @@
-import { App as AntdApp, ConfigProvider, Tabs, theme as antdTheme } from 'antd';
+import { App as AntdApp, ConfigProvider, Tabs, theme as antdTheme, Button } from 'antd';
+import { LogoutOutlined } from '@ant-design/icons';
 import zhCN from 'antd/locale/zh_CN';
 import { useThemeStore } from '@/stores/themeStore';
+import { useAuthStore } from '@/stores/authStore';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 import KbListPage from './KbListPage';
 import DocsPage from './DocsPage';
@@ -16,6 +18,8 @@ import TasksPage from './TasksPage';
  */
 export default function AdminPage() {
   const theme = useThemeStore((s) => s.theme);
+  const username = useAuthStore((s) => s.username);
+  const logout = useAuthStore((s) => s.logout);
   const isDark = theme === 'dark' || theme === 'midnight';
 
   return (
@@ -37,6 +41,10 @@ export default function AdminPage() {
               <div className="admin-page-subtitle">知识库 / 文档 / 入库任务管理</div>
             </div>
             <ThemeSwitch />
+            <span className="admin-page-user">{username}</span>
+            <Button size="small" icon={<LogoutOutlined />} onClick={logout}>
+              登出
+            </Button>
           </div>
           <Tabs
             className="admin-page-tabs"

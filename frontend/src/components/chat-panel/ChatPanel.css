@@ -9,13 +9,22 @@
 
 .chat-panel {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100%;
   min-height: 0;
   /* ChatNav(.chat-nav-strip 绝对定位)以 .chat-panel 为定位基准 */
   position: relative;
   background: var(--bg-chat, var(--bg-app));
   border-radius: var(--radius-lg);
+}
+
+/* 右侧主列:头部 + 消息区 + 输入区(纵向排布) */
+.chat-panel-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-panel-empty {
@@ -913,8 +922,126 @@
    空会话 Hero 在 flex 面板内占满剩余空间
    ============================================================ */
 
-.chat-panel > .chat-empty-hero {
+.chat-panel-main > .chat-empty-hero {
   flex: 1;
   min-height: 0;
   height: auto;
+}
+
+/* ============================================================
+   历史会话侧栏
+   ============================================================ */
+
+.conversation-sidebar {
+  flex-shrink: 0;
+  width: 232px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--bg-app, var(--bg-sidebar));
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  overflow: hidden;
+}
+
+.conversation-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  flex-shrink: 0;
+}
+
+.conversation-sidebar-title {
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 600;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.conversation-sidebar-new-btn {
+  height: 24px;
+  padding: 0 10px;
+  font-size: var(--font-size-sm, 13px);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.conversation-sidebar-new-btn:hover {
+  color: var(--primary-color);
+  border-color: var(--accent, var(--primary-color));
+}
+
+.conversation-sidebar-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.conversation-sidebar-tip {
+  padding: 18px 12px;
+  text-align: center;
+  font-size: var(--font-size-sm, 13px);
+  color: var(--text-muted, var(--text-secondary));
+}
+
+.conversation-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.conversation-sidebar-item:hover {
+  background: var(--bg-hover, var(--bg-secondary));
+}
+
+.conversation-sidebar-item.active {
+  background: var(--bg-active, var(--bg-hover));
+}
+
+.conversation-sidebar-item-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm, 13px);
+  color: var(--text-primary);
+}
+
+.conversation-sidebar-item-del {
+  flex-shrink: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, var(--text-secondary));
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.conversation-sidebar-item:hover .conversation-sidebar-item-del {
+  display: flex;
+}
+
+.conversation-sidebar-item-del:hover {
+  color: var(--error-color, #dc2626);
 }

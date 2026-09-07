@@ -28,6 +28,10 @@ const zh: Record<string, string> = {
   'chat.heroTitle': '你好，我是 ragbase 知识库助手',
   'chat.heroSubtitle': '基于已入库文档回答你的问题，答案附带来源引用',
   'chat.themeLabel': '主题：{theme}',
+  'chat.historyTitle': '历史会话',
+  'chat.historyEmpty': '暂无历史会话',
+  'chat.historyDelete': '删除会话',
+  'chat.historyConfirmDelete': '确定删除该会话吗？此操作不可恢复',
 
   // 应用导航
   'app.nav.chat': '聊天',
