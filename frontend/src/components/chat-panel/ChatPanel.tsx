@@ -1,5 +1,5 @@
 /**
- * ChatPanel - 聊天面板(ragbase 版)
+ * ChatPanel - 聊天面板(slothrag 版)
  *
  * 从 HippoBuddy 版搬入并裁剪:顶部栏(知识库选择 + 新建会话)、
  * 消息列表(流式 tail 与固化消息同 key 复用 DOM)、自动滚动/回底提示、

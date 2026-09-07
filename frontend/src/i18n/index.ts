@@ -1,7 +1,7 @@
 /**
  * i18n — 国际化引擎(精简版)
  *
- * ragbase 沿用 HippoBuddy 的自研轻量方案:key 查表 + {param} 插值。
+ * slothrag 沿用 HippoBuddy 的自研轻量方案:key 查表 + {param} 插值。
  * 仅保留中文文案(见 messages.ts),不引入 i18next。
  */
 import { useCallback } from 'react';

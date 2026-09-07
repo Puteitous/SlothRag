@@ -1,6 +1,6 @@
--- ragbase 数据库初始化脚本
--- 执行方式：psql -U postgres -h localhost -d ragbase -f schema.sql
--- 前置：CREATE DATABASE ragbase;（本脚本假定已在 ragbase 库内执行）
+-- slothrag 数据库初始化脚本
+-- 执行方式：psql -U postgres -h localhost -d slothrag -f schema.sql
+-- 前置：CREATE DATABASE slothrag;（本脚本假定已在 slothrag 库内执行）
 
 -- 向量扩展（BGE-M3 输出 1024 维；如需更换模型调整 vector(1024) 维度）
 CREATE EXTENSION IF NOT EXISTS vector;

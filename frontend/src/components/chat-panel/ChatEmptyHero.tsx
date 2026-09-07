@@ -1,8 +1,8 @@
 /**
- * ChatEmptyHero - 空态欢迎屏(ragbase 版)
+ * ChatEmptyHero - 空态欢迎屏(slothrag 版)
  *
  * 从 HippoBuddy 版重写:去掉河马品牌动画与模式胶囊,
- * 改为 ragbase 标题 + 知识库问答场景的预设问题。
+ * 改为 slothrag 标题 + 知识库问答场景的预设问题。
  */
 import { useI18n } from '@/i18n';
 import './ChatEmptyHero.css';

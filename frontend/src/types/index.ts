@@ -1,5 +1,5 @@
 /**
- * ragbase 前端核心类型定义
+ * slothrag 前端核心类型定义
  */
 
 /** 来源引用(sources SSE 事件的单条) */
@@ -8,7 +8,7 @@ export interface SourceItem {
   source: string;
 }
 
-/** 消息角色:ragbase 仅有用户问答,无工具消息 */
+/** 消息角色:slothrag 仅有用户问答,无工具消息 */
 export type MessageRole = 'user' | 'assistant';
 
 export interface Message {

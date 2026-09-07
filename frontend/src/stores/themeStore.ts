@@ -1,5 +1,5 @@
 /**
- * 全局主题状态(Zustand,ragbase 版)
+ * 全局主题状态(Zustand,slothrag 版)
  *
  * 从 HippoBuddy themeStore 搬入并裁剪:去掉 Electron(desktopBridge)与 system 跟随,
  * 保留 light / dark / midnight 三套主题,通过 <html data-theme> 应用。
@@ -10,7 +10,7 @@ import { create } from 'zustand';
 
 export type Theme = 'light' | 'dark' | 'midnight';
 
-const THEME_KEY = 'ragbase-theme';
+const THEME_KEY = 'slothrag-theme';
 
 const THEME_ORDER: Theme[] = ['light', 'dark', 'midnight'];
 

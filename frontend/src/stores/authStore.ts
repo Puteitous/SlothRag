@@ -1,5 +1,5 @@
 /**
- * 后台登录状态(Zustand,ragbase 版)
+ * 后台登录状态(Zustand,slothrag 版)
  *
  * token 持久化到 localStorage,http.ts 统一附加 Authorization 头;
  * 401 时由 http.ts 触发 logout 回到登录页。
@@ -7,8 +7,8 @@
 import { create } from 'zustand';
 import { postJson, UNAUTHORIZED_EVENT } from '@/api/http';
 
-const TOKEN_KEY = 'ragbase-auth-token';
-const USERNAME_KEY = 'ragbase-auth-username';
+const TOKEN_KEY = 'slothrag-auth-token';
+const USERNAME_KEY = 'slothrag-auth-username';
 
 /** 使 token/用户名对当前请求生效,模拟签名 → 校验的时序一致 */
 function getStoredToken(): string | null {

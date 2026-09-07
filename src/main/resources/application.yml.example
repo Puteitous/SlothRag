@@ -1,4 +1,4 @@
-# ragbase 配置模板
+# slothrag 配置模板
 # 使用方式：
 #   1. 复制本文件为 src/main/resources/application.yml
 #   2. 填入 LLM_API_KEY / EMBEDDING_API_KEY / RERANK_API_KEY（或直接在此填值）
@@ -7,9 +7,9 @@ server:
 
 spring:
   application:
-    name: ragbase
+    name: slothrag
   datasource:
-    url: jdbc:postgresql://localhost:5432/ragbase
+    url: jdbc:postgresql://localhost:5432/slothrag
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
@@ -43,4 +43,4 @@ kb:
 
 logging:
   level:
-    com.ragbase: debug
+    com.slothrag: debug

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
 // 后端 API 地址(本地开发由 Spring Boot 提供,默认 8080)
-const API_TARGET = process.env.RAGBASE_API_TARGET ?? 'http://localhost:8080';
+const API_TARGET = process.env.SLOTHRAG_API_TARGET ?? 'http://localhost:8080';
 
 export default defineConfig({
   plugins: [react()],

@@ -1,11 +1,11 @@
-# ragbase 一键起：docker compose up -d
+# slothrag 一键起：docker compose up -d
 # API key 从宿主机环境变量或 .env 文件读取（见根目录 .env.example 说明），不要写死在此文件
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: ragbase-postgres
+    container_name: slothrag-postgres
     environment:
-      POSTGRES_DB: ragbase
+      POSTGRES_DB: slothrag
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
@@ -15,21 +15,21 @@ services:
       # 首次启动自动建表（仅新数据卷时执行）
       - ./src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ragbase"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d slothrag"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   app:
     build: .
-    container_name: ragbase-app
+    container_name: slothrag-app
     depends_on:
       postgres:
         condition: service_healthy
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ragbase
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/slothrag
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       # AiProperties 前缀为 ai，环境变量需带 AI_ 前缀才能绑定（AI_EMBEDDING_API_KEY -> ai.embedding.api-key）

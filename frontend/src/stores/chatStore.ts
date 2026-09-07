@@ -1,7 +1,7 @@
 /**
  * 聊天状态(Zustand)
  *
- * ragbase 简化版:单会话(无会话分区)。
+ * slothrag 简化版:单会话(无会话分区)。
  * 数据流:
  *   send → 乐观追加 user + 空 assistant(streaming)
  *        → GET /api/chat SSE 解析

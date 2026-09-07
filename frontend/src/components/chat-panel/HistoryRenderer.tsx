@@ -1,5 +1,5 @@
 /**
- * HistoryRenderer - 消息列表(ragbase 简化版)
+ * HistoryRenderer - 消息列表(slothrag 简化版)
  *
  * 从 HippoBuddy 版搬入并大幅裁剪:无回合分组 / 工具时间线 / todo 树 /
  * 摘要条,就是纯消息列表(用户 → 助手交替,流式助手消息带光标)。

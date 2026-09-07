@@ -1,9 +1,9 @@
 /**
- * InlineInput - 行内输入框(ragbase 简化版)
+ * InlineInput - 行内输入框(slothrag 简化版)
  *
  * 用 contenteditable div 替换 textarea,支持 Enter 发送 / Shift+Enter 换行。
  * 裁剪说明:从 HippoBuddy 版搬入,删除了文件引用芯片(@path)、图片粘贴、
- * 拖拽与点击跳文件(ragbase 无文件工作区概念)。
+ * 拖拽与点击跳文件(slothrag 无文件工作区概念)。
  *
  * 暴露方法(通过 ref):
  *  - clear(): 清空内容

@@ -1,12 +1,12 @@
 /**
- * ragbase 后端 API 客户端
+ * slothrag 后端 API 客户端
  */
 import { getJson, postJson, deleteJson, authHeaders } from './http';
 import { streamSse } from './sse';
 import type { ConversationItem, DocItem, IngestTaskItem, KbItem, PageResult } from '@/types';
 import type { ChatSseEventName } from '@/types/sse';
 
-/** 统一响应体(ragbase Result 包装) */
+/** 统一响应体(slothrag Result 包装) */
 interface ApiResult<T> {
   code: string;
   message: string;

@@ -1,5 +1,5 @@
 /**
- * MessageBubble - 单条消息气泡(ragbase 简化版)
+ * MessageBubble - 单条消息气泡(slothrag 简化版)
  *
  * 渲染规则:
  *  - role === 'user':右对齐,纯文本,长内容可折叠
@@ -7,7 +7,7 @@
  *  - isStreaming === true:流式态,末尾带闪烁光标
  *
  * 裁剪说明:从 HippoBuddy 版搬入,删除了 tool 分支 / reasoning 折叠 /
- * 联网搜索行 / 文件产物指示器 / 重试分叉回滚按钮(ragbase 无工具链)。
+ * 联网搜索行 / 文件产物指示器 / 重试分叉回滚按钮(slothrag 无工具链)。
  */
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { Message, SourceItem } from '@/types';
@@ -64,7 +64,7 @@ function MessageBubbleComponent({ message, isStreaming = false }: MessageBubbleP
   );
 }
 
-/** 来源引用折叠区(ragbase 特有:sources SSE 事件) */
+/** 来源引用折叠区(slothrag 特有:sources SSE 事件) */
 function SourcesCollapse({ sources }: { sources: SourceItem[] }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);

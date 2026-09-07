@@ -1,7 +1,7 @@
 /**
  * 应用全局状态(Zustand)
  *
- * ragbase 简化版:只承载知识库列表/当前知识库(问答接口必填 kbId)。
+ * slothrag 简化版:只承载知识库列表/当前知识库(问答接口必填 kbId)。
  */
 import { create } from 'zustand';
 import { kbApi } from '@/api/client';

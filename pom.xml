@@ -11,12 +11,12 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.ragbase</groupId>
-    <artifactId>ragbase</artifactId>
+    <groupId>com.slothrag</groupId>
+    <artifactId>slothrag</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>ragbase</name>
+    <name>slothrag</name>
     <description>企业知识库问答产品：文档入库 - 向量检索 - AI 问答（知识底座）</description>
 
     <properties>

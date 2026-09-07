@@ -1,7 +1,7 @@
 /**
  * SSE (Server-Sent Events) 流式读取器
  *
- * ragbase 后端通过 SseEmitter 发送事件,格式:
+ * slothrag 后端通过 SseEmitter 发送事件,格式:
  *   event: <eventName>\n
  *   data: <payload>\n
  *   \n
@@ -93,7 +93,7 @@ export async function streamSse<K extends ChatSseEventName>(
 /**
  * 解析单个 SSE 事件块(由 \n\n 切分出的字符串)。
  *
- * ragbase 的 data 类型:
+ * slothrag 的 data 类型:
  *   - session / delta / error → 纯字符串,直接取 data 行
  *   - sources → JSON 数组,需解析
  */

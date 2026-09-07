@@ -4,15 +4,15 @@
  * - 所有方法返回 Promise<T>,失败抛出 ApiError
  * - JSON 请求自动设置 Content-Type
  * - 自动附带后台登录 token(Authorization)
- * - 401 统一清除凭证并派发 ragbase:unauthorized 事件(登录页/守卫据此回落)
+ * - 401 统一清除凭证并派发 slothrag:unauthorized 事件(登录页/守卫据此回落)
  * - 错误响应统一解析为 { error: string } 提取消息
  */
 import { ApiError } from './error';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' } as const;
-const TOKEN_KEY = 'ragbase-auth-token';
+const TOKEN_KEY = 'slothrag-auth-token';
 
-const UNAUTHORIZED_EVENT = 'ragbase:unauthorized';
+const UNAUTHORIZED_EVENT = 'slothrag:unauthorized';
 
 function currentToken(): string | null {
   try {
@@ -31,7 +31,7 @@ function authHeaders(): Record<string, string> {
 function handleUnauthorized(): void {
   try {
     localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem('ragbase-auth-username');
+    localStorage.removeItem('slothrag-auth-username');
   } catch {
     /* 忽略 */
   }

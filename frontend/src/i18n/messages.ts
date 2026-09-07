@@ -1,7 +1,7 @@
 /**
  * i18n 文案(精简版)
  *
- * ragbase 只保留聊天界面用到的 key,新增时在此追加。
+ * slothrag 只保留聊天界面用到的 key,新增时在此追加。
  */
 export type Lang = 'zh' | 'en';
 
@@ -17,7 +17,7 @@ const zh: Record<string, string> = {
   'chat.collapseContent': '收起内容',
 
   // 聊天面板
-  'chat.appTitle': 'ragbase 知识库问答',
+  'chat.appTitle': 'slothrag 知识库问答',
   'chat.selectKb': '选择知识库',
   'chat.newSession': '新建会话',
   'chat.error': '错误',
@@ -25,7 +25,7 @@ const zh: Record<string, string> = {
   'chat.inputPlaceholder': '向知识库提问…（Enter 发送，Shift+Enter 换行）',
   'chat.sendMessage': '发送',
   'chat.stop': '停止',
-  'chat.heroTitle': '你好，我是 ragbase 知识库助手',
+  'chat.heroTitle': '你好，我是 SlothRag 知识库助手',
   'chat.heroSubtitle': '基于已入库文档回答你的问题，答案附带来源引用',
   'chat.themeLabel': '主题：{theme}',
   'chat.historyTitle': '历史会话',
@@ -36,7 +36,7 @@ const zh: Record<string, string> = {
   // 应用导航
   'app.nav.chat': '聊天',
   'app.nav.admin': '管理后台',
-  'app.title': 'ragbase',
+  'app.title': 'SlothRag',
 };
 
 /** 英文未单独维护,回退中文 */
