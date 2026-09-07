@@ -1,5 +1,19 @@
 # SlothRag
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white" alt="Java 21">
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.4-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot">
+  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white" alt="React 18">
+  <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/license-Apache%202.0-555555" alt="License">
+  <img src="https://img.shields.io/github/last-commit/Puteitous/SlothRag" alt="Last Commit">
+</p>
+
+<p align="center">
+  简体中文 | <a href="./docs/README.en.md">English</a>
+</p>
+
 基于 RAG 的知识库问答系统，支持 AI 对话、文档导入与对话管理。
 
 ## 功能概览

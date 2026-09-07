@@ -13,8 +13,9 @@ target/
 # ===== 本地运行时数据（上传文档、会话记录，可能含敏感内容）=====
 data/
 
-# ===== 项目文档（本地私有）=====
+# ===== 项目文档（本地私有，但保留 README.en.md ）=====
 docs/
+!docs/README.en.md
 
 # ===== 配置文件（application.yml 含 API key 明文，绝不提交）=====
 src/main/resources/application.yml
