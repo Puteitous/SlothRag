@@ -23,6 +23,7 @@ export function ChatEmptyHero({ onPresetSelect }: ChatEmptyHeroProps) {
 
   return (
     <div className="chat-empty-hero">
+      <img src="./slothrag.svg" alt="SlothRag" className="chat-empty-hero-icon" />
       <div className="chat-empty-hero-title">{t('chat.heroTitle')}</div>
       <div className="chat-empty-hero-subtitle">{t('chat.heroSubtitle')}</div>
       <div className="chat-empty-hero-presets">

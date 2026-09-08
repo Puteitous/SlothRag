@@ -29,6 +29,7 @@ export function ChatPanel() {
   const setCurrentKbId = useAppStore((s) => s.setCurrentKbId);
   const { messages, isSending, error } = useSessionStream();
   const historyLoading = useChatStore((s) => s.historyLoading);
+  const recommendedQuestions = useChatStore((s) => s.recommendedQuestions);
   const reset = useChatStore((s) => s.reset);
   const { send, abort } = useChatStream();
   const loadConversations = useConversationListStore((s) => s.load);
@@ -161,6 +162,28 @@ export function ChatPanel() {
             {error && (
               <div className="chat-panel-error">
                 <strong>{t('chat.error')}:</strong> {error}
+              </div>
+            )}
+            {recommendedQuestions.length > 0 && !isSending && (
+              <div className="recommended-questions">
+                <div className="recommended-questions-label">{t('chat.recommendedTitle')}</div>
+                <div className="recommended-questions-list">
+                  {recommendedQuestions.map((q, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className="recommended-question-btn"
+                      onClick={() => handlePresetSelect(q)}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 16v-4" />
+                        <path d="M12 8h.01" />
+                      </svg>
+                      <span>{q}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             <div ref={messagesEndRef} className="chat-panel-anchor" />

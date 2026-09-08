@@ -39,6 +39,9 @@ const zh: Record<string, string> = {
   'chat.feedback.thanks': '感谢你的反馈',
   'chat.feedback.retract': '已取消反馈',
 
+  // 推荐问题
+  'chat.recommendedTitle': '你可能还想问',
+
   // 应用导航
   'app.nav.chat': '聊天',
   'app.nav.admin': '管理后台',

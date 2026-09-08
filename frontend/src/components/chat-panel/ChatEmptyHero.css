@@ -16,6 +16,16 @@
   position: relative;
 }
 
+/* ── SlothRag 图标 ──────────────────────────────────── */
+.chat-empty-hero-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 8px;
+  opacity: 0.85;
+  user-select: none;
+  pointer-events: none;
+}
+
 /* ── 河马 logo ────────────────────────────────────────── */
 .empty-logo {
   font-size: 56px;

@@ -121,6 +121,28 @@ export const feedbackApi = {
     if (res.code !== '0') throw new Error(res.message);
     return res.data;
   },
+
+  /** 管理员：分页查询反馈列表（按时间倒排，可按 feedback 类型过滤） */
+  list: async (
+    page: number,
+    pageSize: number,
+    feedbackType?: string,
+  ): Promise<PageResult<import('@/types').FeedbackRecord>> => {
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+    if (feedbackType) params.set('feedbackType', feedbackType);
+    const res = await getJson<ApiResult<PageResult<import('@/types').FeedbackRecord>>>(
+      `/api/feedback/page?${params.toString()}`,
+    );
+    if (res.code !== '0') throw new Error(res.message);
+    return res.data;
+  },
+
+  /** 管理员：反馈统计 */
+  stats: async (): Promise<import('@/types').FeedbackStats> => {
+    const res = await getJson<ApiResult<import('@/types').FeedbackStats>>('/api/feedback/stats');
+    if (res.code !== '0') throw new Error(res.message);
+    return res.data;
+  },
 };
 
 /** 流式问答 */

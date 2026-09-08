@@ -1,7 +1,10 @@
 package com.slothrag.feedback;
 
+import com.slothrag.common.web.PageResult;
 import com.slothrag.common.web.Result;
 import com.slothrag.knowledge.dao.MessageFeedbackDao;
+import com.slothrag.knowledge.dao.MessageFeedbackDao.DownRankItem;
+import com.slothrag.knowledge.dao.MessageFeedbackDao.FeedbackStats;
 import com.slothrag.knowledge.domain.MessageFeedback;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -13,6 +16,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * 消息反馈接口（👍👎）
@@ -47,6 +53,33 @@ public class FeedbackController {
     public Result<MessageFeedback> get(@RequestParam @NotBlank String sessionId,
                                         @RequestParam @NotBlank String messageId) {
         return Result.success(messageFeedbackDao.findBySessionAndMessage(sessionId, messageId));
+    }
+
+    /**
+     * 管理员：分页查询反馈列表（按时间倒排），可按 feedback 类型过滤
+     */
+    @GetMapping("/page")
+    public Result<PageResult<MessageFeedback>> page(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String feedbackType) {
+        return Result.success(messageFeedbackDao.list(page, pageSize, feedbackType));
+    }
+
+    /**
+     * 管理员：反馈统计（总数 / 好评率 / 差评 Top 提问）
+     */
+    @GetMapping("/stats")
+    public Result<Map<String, Object>> stats() {
+        FeedbackStats s = messageFeedbackDao.stats();
+        List<DownRankItem> topDown = messageFeedbackDao.topDownQuestions(10);
+        return Result.success(Map.of(
+                "total", s.getTotal(),
+                "thumbsUp", s.getThumbsUp(),
+                "thumbsDown", s.getThumbsDown(),
+                "likeRate", s.likeRate(),
+                "topDownQuestions", topDown
+        ));
     }
 
     @Data

@@ -12,6 +12,7 @@ import com.slothrag.ai.llm.ToolCall;
 import com.slothrag.ai.llm.ToolDefinition;
 import com.slothrag.conversation.ConversationService;
 import com.slothrag.session.SessionStore;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -72,6 +73,7 @@ public class ChatService {
     private final KbSearchTool kbSearchTool;
     private final ReadDocTool readDocTool;
     private final GrepDocTool grepDocTool;
+    private final RecommendedQuestionService recommendedQuestionService;
 
     /**
      * 流式问答（agent loop，支持多轮）
@@ -100,7 +102,7 @@ public class ChatService {
 
             DeltaBuffer buffer = new DeltaBuffer(emitter);
             buffer.start();
-            runLoop(messages, tools, kbId, sessionId, emitter, buffer, sourcesAcc, 0);
+            runLoop(messages, tools, kbId, sessionId, emitter, buffer, sourcesAcc, 0, question);
         } catch (Exception e) {
             log.error("问答异常", e);
             sendError(emitter, e);
@@ -113,7 +115,7 @@ public class ChatService {
      */
     private void runLoop(List<ChatMessage> messages, List<ToolDefinition> tools, Long kbId,
                          String sessionId, SseEmitter emitter, DeltaBuffer buffer,
-                         List<Map<String, Object>> sourcesAcc, int turn) {
+                         List<Map<String, Object>> sourcesAcc, int turn, String question) {
         if (turn >= MAX_TOOL_TURNS) {
             buffer.stop();
             complete(emitter);
@@ -138,7 +140,7 @@ public class ChatService {
                 executed[0] = true;
                 try {
                     runTools(calls, messages, kbId, sourcesAcc);
-                    runLoop(messages, tools, kbId, sessionId, emitter, buffer, sourcesAcc, turn + 1);
+                    runLoop(messages, tools, kbId, sessionId, emitter, buffer, sourcesAcc, turn + 1, question);
                 } catch (Exception e) {
                     log.error("工具执行失败", e);
                     buffer.stop();
@@ -161,8 +163,13 @@ public class ChatService {
                     if (!sourcesAcc.isEmpty()) {
                         emitter.send(SseEmitter.event().name("sources").data(sourcesAcc));
                     }
+                    // 推荐问题：用非流式轻量 LLM 调用生成 3 个相关问题
+                    List<String> recommended = recommendedQuestionService.generate(question, answer);
+                    if (!recommended.isEmpty()) {
+                        emitter.send(SseEmitter.event().name("recommended").data(recommended));
+                    }
                 } catch (IOException e) {
-                    log.debug("SSE 发送 sources 失败: {}", e.getMessage());
+                    log.debug("SSE 发送失败: {}", e.getMessage());
                 }
                 complete(emitter);
             }

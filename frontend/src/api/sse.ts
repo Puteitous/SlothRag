@@ -96,6 +96,7 @@ export async function streamSse<K extends ChatSseEventName>(
  * slothrag 的 data 类型:
  *   - session / delta / error → 纯字符串,直接取 data 行
  *   - sources → JSON 数组,需解析
+ *   - recommended → JSON 字符串数组,需解析
  */
 export function parseSseChunk<K extends ChatSseEventName>(chunk: string): SseEvent<K> | null {
   const lines = chunk.split('\n');
@@ -116,12 +117,12 @@ export function parseSseChunk<K extends ChatSseEventName>(chunk: string): SseEve
   const dataStr = dataLines.join('\n');
   let data: ChatSseEventMap[K];
 
-  if (eventName === 'sources') {
+  if (eventName === 'sources' || eventName === 'recommended') {
     try {
       data = JSON.parse(dataStr) as ChatSseEventMap[K];
     } catch {
       // JSON 解析失败不阻断流,降级为空数组
-      console.warn('[sse] 解析 sources 的 data 失败:', dataStr);
+      console.warn('[sse] 解析 JSON 事件失败:', eventName, dataStr);
       data = [] as unknown as ChatSseEventMap[K];
     }
   } else {

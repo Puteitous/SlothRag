@@ -111,3 +111,12 @@ export interface FeedbackRecord {
   comment?: string;
   createdAt: string;
 }
+
+/** 反馈统计（管理后台看板） */
+export interface FeedbackStats {
+  total: number;
+  thumbsUp: number;
+  thumbsDown: number;
+  likeRate: number;
+  topDownQuestions: { question: string; count: number }[];
+}

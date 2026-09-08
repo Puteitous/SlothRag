@@ -2,18 +2,20 @@
  * slothrag Chat SSE 事件类型定义
  *
  * 事件来源:后端 com.slothrag.chat.service.ChatService(通过 SseEmitter 发送)。
- * 共 4 种事件:
- *   session → 会话 id(字符串,多轮对话凭此续接)
- *   delta   → 回答增量(字符串,流式追加)
- *   sources → 来源引用(JSON 数组 [{source: "..."}],回答结束后发送)
- *   error   → 错误信息(字符串)
+ * 共 5 种事件:
+ *   session     → 会话 id(字符串,多轮对话凭此续接)
+ *   delta       → 回答增量(字符串,流式追加)
+ *   sources     → 来源引用(JSON 数组 [{source: "..."}],回答结束后发送)
+ *   recommended → 推荐问题(JSON 字符串数组 ["q1","q2","q3"],回答结束后发送)
+ *   error       → 错误信息(字符串)
  */
 
-export type ChatSseEventName = 'session' | 'delta' | 'sources' | 'error';
+export type ChatSseEventName = 'session' | 'delta' | 'sources' | 'recommended' | 'error';
 
 export interface ChatSseEventMap {
   session: string;
   delta: string;
   sources: { source: string }[];
+  recommended: string[];
   error: string;
 }

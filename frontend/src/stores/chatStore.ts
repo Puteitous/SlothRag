@@ -25,6 +25,8 @@ interface ChatState {
   historyLoading: boolean;
   /** 错误信息(null=无) */
   error: string | null;
+  /** 推荐问题(recommended SSE 事件,回答结束后出现) */
+  recommendedQuestions: string[];
   /** 发送问题(基于指定知识库) */
   send: (question: string, kbId: number) => Promise<void>;
   /** 中断当前流式回答(保留已生成内容) */
@@ -47,6 +49,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isSending: false,
   historyLoading: false,
   error: null,
+  recommendedQuestions: [],
 
   send: async (question, kbId) => {
     if (get().isSending) return;
@@ -71,6 +74,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       messages: [...s.messages, userMsg, assistantMsg],
       isSending: true,
       error: null,
+      recommendedQuestions: [],
     }));
 
     const controller = new AbortController();
@@ -100,6 +104,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
               ),
             }));
             break;
+          case 'recommended':
+            set({ recommendedQuestions: evt.data as string[] });
+            break;
           case 'error':
             set({ error: evt.data as string });
             break;
@@ -128,13 +135,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
   reset: () => {
     activeController?.abort();
     activeController = null;
-    set({ messages: [], conversationId: null, isSending: false, historyLoading: false, error: null });
+    set({ messages: [], conversationId: null, isSending: false, historyLoading: false, error: null, recommendedQuestions: [] });
   },
 
   startSession: async (sessionId) => {
     activeController?.abort();
     activeController = null;
-    set({ messages: [], conversationId: sessionId, isSending: false, historyLoading: true, error: null });
+    set({ messages: [], conversationId: sessionId, isSending: false, historyLoading: true, error: null, recommendedQuestions: [] });
     try {
       const raw = await conversationApi.messages(sessionId);
       const messages: Message[] = raw

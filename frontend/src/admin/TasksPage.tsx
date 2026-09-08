@@ -91,13 +91,20 @@ export default function TasksPage() {
       dataIndex: 'progress',
       key: 'progress',
       width: 160,
-      render: (v: number, record) => (
-        <Progress
-          percent={v}
-          size="small"
-          status={record.status === 'FAILED' ? 'exception' : record.status === 'SUCCESS' ? 'success' : 'active'}
-        />
-      ),
+      render: (v: number, record) => {
+        if (record.status === 'QUEUED') {
+          return <Tag color="default">⏳ 排队中</Tag>;
+        }
+        if (record.status === 'SUCCESS') {
+          return <Tag color="green">已完成 ✓</Tag>;
+        }
+        if (record.status === 'FAILED') {
+          const stage = record.currentStage ? `于 ${record.currentStage} 阶段` : '';
+          return <Tag color="red">失败{stage}（{v}%）</Tag>;
+        }
+        // RUNNING — 唯一需要进度条的场景
+        return <Progress percent={v} size="small" status="active" />;
+      },
     },
     {
       title: '当前阶段',

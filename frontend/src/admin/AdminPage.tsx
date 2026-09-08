@@ -7,6 +7,7 @@ import { ThemeSwitch } from '@/components/ThemeSwitch';
 import KbListPage from './KbListPage';
 import DocsPage from './DocsPage';
 import TasksPage from './TasksPage';
+import FeedbackPage from './FeedbackPage';
 
 /**
  * 管理后台入口
@@ -38,7 +39,7 @@ export default function AdminPage() {
           <div className="admin-page-header">
             <div className="admin-page-heading">
               <h2 className="admin-page-title">管理后台</h2>
-              <div className="admin-page-subtitle">知识库 / 文档 / 入库任务管理</div>
+              <div className="admin-page-subtitle">知识库 / 文档 / 入库任务 / 反馈看板</div>
             </div>
             <ThemeSwitch />
             <span className="admin-page-user">{username}</span>
@@ -53,6 +54,7 @@ export default function AdminPage() {
               { key: 'kb', label: '知识库', children: <KbListPage /> },
               { key: 'docs', label: '文档', children: <DocsPage /> },
               { key: 'tasks', label: '入库任务', children: <TasksPage /> },
+              { key: 'feedback', label: '反馈看板', children: <FeedbackPage /> },
             ]}
           />
         </div>

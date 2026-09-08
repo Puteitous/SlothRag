@@ -295,3 +295,42 @@
   text-align: center;
   margin-bottom: 24px !important;
 }
+
+/* ===== 反馈看板 ===== */
+.feedback-type-select {
+  min-width: 120px;
+}
+
+.feedback-down-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.feedback-down-rank-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--bg-muted, #f0f0f0);
+  color: var(--text-secondary, #666);
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.feedback-down-rank-question {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.text-muted {
+  color: var(--text-muted, #999);
+}

@@ -60,6 +60,44 @@ public class OpenAiCompatibleLlmClient {
     }
 
     /**
+     * 非流式对话（同步），适用于轻量场景如推荐问题生成。
+     * 返回完整文本，不支持工具调用。
+     */
+    public String chat(List<ChatMessage> messages) {
+        AiProperties.Llm cfg = props.getLlm();
+        if (!StringUtils.hasText(cfg.getApiKey())) {
+            throw new BizException("LLM_API_KEY 未配置");
+        }
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("model", cfg.getModel());
+            payload.put("messages", messages);
+            payload.put("stream", false);
+            payload.put("temperature", 0.1);
+            String body = mapper.writeValueAsString(payload);
+            Request request = new Request.Builder()
+                    .url(cfg.getBaseUrl() + "/chat/completions")
+                    .header("Authorization", "Bearer " + cfg.getApiKey())
+                    .post(RequestBody.create(body, JSON))
+                    .build();
+            try (Response response = http.newCall(request).execute()) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    throw new BizException("LLM_ERROR", "LLM 非流式调用失败: HTTP " + response.code());
+                }
+                JsonNode node = mapper.readTree(response.body().byteStream());
+                JsonNode choice = node.path("choices").get(0);
+                String text = choice.path("message").path("content").asText("");
+                if (!StringUtils.hasText(text)) {
+                    log.warn("LLM 非流式返回空内容");
+                }
+                return text;
+            }
+        } catch (IOException e) {
+            throw new BizException("LLM_ERROR", "LLM 非流式调用异常: " + e.getMessage());
+        }
+    }
+
+    /**
      * 携带工具的流式对话，返回取消句柄
      */
     public Runnable streamChat(List<ChatMessage> messages, List<ToolDefinition> tools, StreamCallback callback) {
