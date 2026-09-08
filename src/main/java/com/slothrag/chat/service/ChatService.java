@@ -2,7 +2,9 @@ package com.slothrag.chat.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.slothrag.agent.GrepDocTool;
 import com.slothrag.agent.KbSearchTool;
+import com.slothrag.agent.ReadDocTool;
 import com.slothrag.ai.llm.ChatMessage;
 import com.slothrag.ai.llm.OpenAiCompatibleLlmClient;
 import com.slothrag.ai.llm.StreamCallback;
@@ -68,6 +70,8 @@ public class ChatService {
     private final SessionStore sessionStore;
     private final ConversationService conversationService;
     private final KbSearchTool kbSearchTool;
+    private final ReadDocTool readDocTool;
+    private final GrepDocTool grepDocTool;
 
     /**
      * 流式问答（agent loop，支持多轮）
@@ -90,7 +94,8 @@ public class ChatService {
             messages.addAll(history);
             messages.add(ChatMessage.user(question));
 
-            List<ToolDefinition> tools = List.of(kbSearchTool.definition());
+            List<ToolDefinition> tools = List.of(kbSearchTool.definition(),
+                    readDocTool.definition(), grepDocTool.definition());
             List<Map<String, Object>> sourcesAcc = new ArrayList<>();
 
             DeltaBuffer buffer = new DeltaBuffer(emitter);
@@ -185,15 +190,48 @@ public class ChatService {
 
         for (ToolCall call : known) {
             String name = call.getFunction().getName();
-            if (!KbSearchTool.NAME.equals(name)) {
-                messages.add(ChatMessage.toolResult(call.getId(), name, "未知工具"));
-                continue;
-            }
-            List<String> queries = parseQueries(call.getFunction().getArguments());
-            KbSearchTool.ExecResult result = kbSearchTool.execute(queries, kbId);
-            messages.add(ChatMessage.toolResult(call.getId(), name, result.toolContent()));
-            sourcesAcc.addAll(KbSearchTool.toSources(result.hits()));
+            String result = executeTool(name, call.getFunction().getArguments(), kbId, sourcesAcc);
+            messages.add(ChatMessage.toolResult(call.getId(), name, result));
         }
+    }
+
+    /**
+     * 根据工具名称分发执行
+     */
+    private String executeTool(String name, String arguments, Long kbId,
+                               List<Map<String, Object>> sourcesAcc) {
+        return switch (name) {
+            case KbSearchTool.NAME -> {
+                List<String> queries = parseQueries(arguments);
+                KbSearchTool.ExecResult r = kbSearchTool.execute(queries, kbId);
+                sourcesAcc.addAll(KbSearchTool.toSources(r.hits()));
+                yield r.toolContent();
+            }
+            case ReadDocTool.NAME -> {
+                try {
+                    JsonNode node = MAPPER.readTree(arguments);
+                    Long docId = node.path("doc_id").asLong(0);
+                    int seqStart = node.path("seq_start").asInt(1);
+                    int seqEnd = node.path("seq_end").asInt(0);
+                    yield readDocTool.execute(docId,
+                            node.has("seq_start") ? seqStart : null,
+                            node.has("seq_end") ? seqEnd : null);
+                } catch (IOException e) {
+                    yield "参数解析失败: " + e.getMessage();
+                }
+            }
+            case GrepDocTool.NAME -> {
+                try {
+                    JsonNode node = MAPPER.readTree(arguments);
+                    Long docId = node.path("doc_id").asLong(0);
+                    String keyword = node.path("keyword").asText("");
+                    yield grepDocTool.execute(docId, keyword);
+                } catch (IOException e) {
+                    yield "参数解析失败: " + e.getMessage();
+                }
+            }
+            default -> "未知工具：" + name;
+        };
     }
 
     /**

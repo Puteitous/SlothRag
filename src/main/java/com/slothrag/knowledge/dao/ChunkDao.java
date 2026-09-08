@@ -113,6 +113,53 @@ public class ChunkDao {
                 args.toArray());
     }
 
+    /**
+     * 按文档 ID + 序号范围读取切片（用于 read_doc 工具）
+     */
+    public List<Chunk> readDoc(Long docId, Integer seqStart, Integer seqEnd) {
+        String sql = """
+                SELECT c.id, c.doc_id, c.kb_id, c.seq, c.content, c.heading_path, c.created_at
+                FROM chunk c
+                WHERE c.doc_id = ? AND c.seq BETWEEN ? AND ?
+                ORDER BY c.seq
+                """;
+        return jdbc.query(sql, (rs, i) -> {
+            Chunk c = new Chunk();
+            c.setId(rs.getLong("id"));
+            c.setDocId(rs.getLong("doc_id"));
+            c.setKbId(rs.getLong("kb_id"));
+            c.setSeq(rs.getInt("seq"));
+            c.setContent(rs.getString("content"));
+            c.setHeadingPath(rs.getString("heading_path"));
+            c.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+            return c;
+        }, docId, seqStart, seqEnd);
+    }
+
+    /**
+     * 在指定文档内搜索关键词（ILIKE 模糊匹配），用于 grep_doc 工具
+     */
+    public List<Chunk> grepDoc(Long docId, String keyword) {
+        String sql = """
+                SELECT c.id, c.doc_id, c.kb_id, c.seq, c.content, c.heading_path, c.created_at
+                FROM chunk c
+                WHERE c.doc_id = ? AND c.content ILIKE ? ESCAPE '\\'
+                ORDER BY c.seq
+                """;
+        String pattern = "%" + escapeLike(keyword) + "%";
+        return jdbc.query(sql, (rs, i) -> {
+            Chunk c = new Chunk();
+            c.setId(rs.getLong("id"));
+            c.setDocId(rs.getLong("doc_id"));
+            c.setKbId(rs.getLong("kb_id"));
+            c.setSeq(rs.getInt("seq"));
+            c.setContent(rs.getString("content"));
+            c.setHeadingPath(rs.getString("heading_path"));
+            c.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+            return c;
+        }, docId, pattern);
+    }
+
     private String escapeLike(String text) {
         return text.replace("\\", "\\\\")
                 .replace("%", "\\%")
