@@ -12,7 +12,6 @@ import com.slothrag.ai.llm.ToolCall;
 import com.slothrag.ai.llm.ToolDefinition;
 import com.slothrag.conversation.ConversationService;
 import com.slothrag.session.SessionStore;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,11 +42,17 @@ public class ChatService {
             "你是企业知识库问答助手。请依据知识库内容回答企业相关问题。\n"
             + "行为规则：\n"
             + "1. 只有当问题属于知识库范围、需要知识支撑时才调用 search_kb。\n"
-            + "2. 打招呼 / 闲聊（如“你好”“谢谢”“在吗”）：不要调用工具，直接用一两句话礼貌回应即可。\n"
+            + "2. 打招呼 / 闲聊（如\u201c你好\u201d\u201c谢谢\u201d\u201c在吗\u201d）：不要调用工具，直接用一两句话礼貌回应即可。\n"
             + "3. 明显与知识库业务无关的通用问题（时事、娱乐、生活等）：不要调用工具，礼貌说明你只服务知识库范围内的企业问题，不展开。\n"
             + "4. 调用检索后有充分依据：严格基于检索内容回答，不编造，可在相关结论后标注【来源】。\n"
             + "5. 如果一轮检索结果不够充分（缺少关键信息），可以调整关键词再次调用 search_kb 补充检索。\n"
-            + "6. 调用检索后仍未检索到相关依据：明确告知用户“该问题暂未收录到知识库”，并可提示联系人工。\n"
+            + "6. 调用检索后仍未检索到相关依据：明确告知用户\u201c该问题暂未收录到知识库\u201d，并可提示联系人工。\n"
+            + "回答保持简洁、自然、友好。";
+
+    /** 纯 LLM 对话提示词（无知识库时使用） */
+    private static final String GENERAL_SYSTEM_PROMPT =
+            "你是 slothrag 智能助手，一个通用 AI 对话助手。\n"
+            + "你可以回答各种问题，包括但不限于：知识问答、日常闲聊、信息查询、创意写作等。\n"
             + "回答保持简洁、自然、友好。";
 
     /** agent 工具调用最大轮次（防止无限循环） */
@@ -74,9 +79,8 @@ public class ChatService {
     private final ReadDocTool readDocTool;
     private final GrepDocTool grepDocTool;
     private final RecommendedQuestionService recommendedQuestionService;
-
     /**
-     * 流式问答（agent loop，支持多轮）
+     * 流式问答：有知识库时走 RAG agent loop，无知识库时退化为纯 LLM 对话。
      *
      * @param conversationId 已有会话 id；为空时新建会话，sessionId 通过 SSE session 事件返回
      */
@@ -92,21 +96,61 @@ public class ChatService {
             sessionStore.appendMessage(sessionId, ChatMessage.user(question));
 
             List<ChatMessage> messages = new ArrayList<>();
-            messages.add(ChatMessage.system(AGENT_SYSTEM_PROMPT));
             messages.addAll(history);
             messages.add(ChatMessage.user(question));
 
-            List<ToolDefinition> tools = List.of(kbSearchTool.definition(),
-                    readDocTool.definition(), grepDocTool.definition());
             List<Map<String, Object>> sourcesAcc = new ArrayList<>();
-
             DeltaBuffer buffer = new DeltaBuffer(emitter);
-            buffer.start();
-            runLoop(messages, tools, kbId, sessionId, emitter, buffer, sourcesAcc, 0, question);
+
+            if (kbId == null) {
+                // 纯 LLM 对话模式：不加工具，不走检索
+                messages.add(0, ChatMessage.system(GENERAL_SYSTEM_PROMPT));
+                buffer.start();
+                streamPureLlm(messages, sessionId, emitter, buffer, question);
+            } else {
+                // RAG 模式：加工具，走 agent loop
+                messages.add(0, ChatMessage.system(AGENT_SYSTEM_PROMPT));
+                List<ToolDefinition> tools = List.of(kbSearchTool.definition(),
+                        readDocTool.definition(), grepDocTool.definition());
+                buffer.start();
+                runLoop(messages, tools, kbId, sessionId, emitter, buffer, sourcesAcc, 0, question);
+            }
         } catch (Exception e) {
             log.error("问答异常", e);
             sendError(emitter, e);
         }
+    }
+
+    /**
+     * 纯 LLM 流式对话（无工具调用），流结束后直接落盘完成。
+     */
+    private void streamPureLlm(List<ChatMessage> messages, String sessionId,
+                                SseEmitter emitter, DeltaBuffer buffer, String question) {
+        StringBuilder fullText = new StringBuilder();
+
+        llmClient.streamChat(messages, new StreamCallback() {
+            @Override
+            public void onDelta(String text) {
+                fullText.append(text);
+                buffer.append(text);
+            }
+
+            @Override
+            public void onComplete() {
+                buffer.stop();
+                String answer = fullText.toString();
+                if (StringUtils.hasText(answer)) {
+                    sessionStore.appendMessage(sessionId, ChatMessage.assistant(answer));
+                }
+                complete(emitter);
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                buffer.stop();
+                sendError(emitter, t);
+            }
+        });
     }
 
     /**

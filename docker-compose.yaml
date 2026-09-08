@@ -2,7 +2,10 @@
 # API key 从宿主机环境变量或 .env 文件读取（见根目录 .env.example 说明），不要写死在此文件
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    build:
+      context: .
+      dockerfile: Dockerfile.pg
+    image: slothrag-postgres:pg16
     container_name: slothrag-postgres
     environment:
       POSTGRES_DB: slothrag

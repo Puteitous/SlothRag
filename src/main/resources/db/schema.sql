@@ -5,6 +5,9 @@
 -- 向量扩展（BGE-M3 输出 1024 维；如需更换模型调整 vector(1024) 维度）
 CREATE EXTENSION IF NOT EXISTS vector;
 
+-- 中文分词扩展（pg_jieba，提供 jiebacfg/jiebaqry 分词配置）
+CREATE EXTENSION IF NOT EXISTS pg_jieba;
+
 -- ============ 知识库 ============
 CREATE TABLE IF NOT EXISTS kb (
     id              BIGSERIAL PRIMARY KEY,
@@ -46,8 +49,8 @@ CREATE INDEX IF NOT EXISTS idx_chunk_doc_id ON chunk (doc_id);
 CREATE INDEX IF NOT EXISTS idx_chunk_kb_id ON chunk (kb_id);
 -- HNSW 余弦相似度索引（检索走这里）
 CREATE INDEX IF NOT EXISTS idx_chunk_vector ON chunk USING hnsw (vector vector_cosine_ops);
--- 关键词检索走 PG FTS（GIN 索引）
-CREATE INDEX IF NOT EXISTS idx_chunk_content_fts ON chunk USING gin (to_tsvector('simple', content));
+-- 关键词检索走 PG FTS + 中文分词（GIN 索引）
+CREATE INDEX IF NOT EXISTS idx_chunk_content_fts ON chunk USING gin (to_tsvector('jiebacfg', content));
 
 -- ============ 入库任务 ============
 CREATE TABLE IF NOT EXISTS ingest_task (

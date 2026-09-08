@@ -123,6 +123,9 @@ export function ChatPanel() {
         {/* 顶部栏:标题 + 知识库选择 + 主题切换 + 新建会话 */}
         <div className="chat-panel-header">
           <span className="chat-panel-title">{t('chat.appTitle')}</span>
+          <span className={`chat-panel-mode-badge${currentKbId == null ? ' general' : ''}`}>
+            {currentKbId == null ? t('chat.mode.general') : t('chat.mode.rag')}
+          </span>
           {kbs.length > 0 && (
             <select
               className="chat-panel-kb-select"

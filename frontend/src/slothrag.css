@@ -130,6 +130,26 @@
   gap: 8px;
 }
 
+.chat-panel-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  margin-right: 6px;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--accent, #6366f1);
+  background: var(--bg-code, rgba(99, 102, 241, 0.08));
+  border-radius: 4px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.chat-panel-mode-badge.general {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}
+
 .chat-panel-kb-select {
   margin-left: auto;
   min-width: 120px;

@@ -27,8 +27,8 @@ interface ChatState {
   error: string | null;
   /** 推荐问题(recommended SSE 事件,回答结束后出现) */
   recommendedQuestions: string[];
-  /** 发送问题(基于指定知识库) */
-  send: (question: string, kbId: number) => Promise<void>;
+  /** 发送问题(基于指定知识库; kbId 为 null 时走纯 LLM 对话) */
+  send: (question: string, kbId: number | null) => Promise<void>;
   /** 中断当前流式回答(保留已生成内容) */
   abort: () => void;
   /** 清空当前会话(新建对话) */

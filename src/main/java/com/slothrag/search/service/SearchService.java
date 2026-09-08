@@ -26,15 +26,8 @@ public class SearchService {
     private static final int VECTOR_TOP_K = 8;
     private static final int KEYWORD_TOP_K = 8;
     private static final double RRF_K = 60.0;
-    /** 关键词 LIKE 命中的语义相似度置高值，视为强相关信号 */
-    private static final double STRONG_SIGNAL_SIMILARITY = 0.8;
     /** 未做 Rerank 时 rerankScore 占位值 */
     public static final double NO_RERANK_SCORE = -1.0;
-    /** 中文停用词（单字） */
-    private static final String STOP_CHARS = "的了吗呢吧啊有是在我你他它下为与和及或这个那请问哪个";
-    /** 中文停用词（双字） */
-    private static final java.util.Set<String> STOP_WORDS_2 =
-            java.util.Set.of("怎么", "什么", "多少", "为何", "如何", "为啥", "哪里", "怎样", "几天", "多久", "一下", "可以", "时候");
 
     private final ChunkDao chunkDao;
     private final EmbeddingClient embeddingClient;
@@ -65,7 +58,7 @@ public class SearchService {
         } catch (Exception e) {
             log.warn("向量检索失败，降级为仅关键词: {}", e.getMessage());
         }
-        keywordHits = chunkDao.keywordSearch(extractKeywords(question), kbId, KEYWORD_TOP_K);
+        keywordHits = chunkDao.keywordSearch(question, kbId, KEYWORD_TOP_K);
         log.info("search stage=retrieve question={} vectorHits={} keywordHits={}", question, vectorHits.size(), keywordHits.size());
 
         // RRF 融合出候选（rerankCandidates 条，供 Rerank 精排）
@@ -128,50 +121,13 @@ public class SearchService {
     }
 
     /**
-     * 中文关键词粗切：按停用词/标点切段，保留长度 ≥ 2 的片段
-     * MVP 启发式方案，后续可换正式分词（pg_jieba / zhparser）
-     */
-    List<String> extractKeywords(String question) {
-        String s = question.replaceAll("[\\p{P}\\p{S}\\s]", "");
-        List<String> segments = new ArrayList<>();
-        StringBuilder cur = new StringBuilder();
-        int i = 0;
-        while (i < s.length()) {
-            if (i + 1 < s.length()) {
-                String two = s.substring(i, i + 2);
-                if (STOP_WORDS_2.contains(two)) {
-                    flushSegment(cur, segments);
-                    i += 2;
-                    continue;
-                }
-            }
-            char ch = s.charAt(i);
-            if (STOP_CHARS.indexOf(ch) >= 0) {
-                flushSegment(cur, segments);
-            } else {
-                cur.append(ch);
-            }
-            i++;
-        }
-        flushSegment(cur, segments);
-        return segments;
-    }
-
-    private void flushSegment(StringBuilder cur, List<String> segments) {
-        if (cur.length() >= 2) {
-            segments.add(cur.toString());
-        }
-        cur.setLength(0);
-    }
-
-    /**
-     * @param strongSignal 关键词 LIKE 命中视为强信号（精确子串匹配，语义相似度置高值）
+     * @param strongSignal 关键词命中时的语义相似度（pg_jieba ts_rank 返回真实分）
      */
     private void rank(List<ChunkDao.SearchHit> hits, Map<Long, SearchResultItem> merged, boolean strongSignal) {
         for (int i = 0; i < hits.size(); i++) {
             ChunkDao.SearchHit hit = hits.get(i);
             double rrfScore = 1.0 / (RRF_K + i + 1);
-            double similarity = strongSignal ? Math.max(hit.score(), STRONG_SIGNAL_SIMILARITY) : hit.score();
+            double similarity = hit.score();
             merged.merge(hit.id(),
                     new SearchResultItem(hit.id(), hit.docId(), hit.content(), rrfScore, similarity, NO_RERANK_SCORE, hit.headingPath(), hit.docName()),
                     (old, cur) -> new SearchResultItem(

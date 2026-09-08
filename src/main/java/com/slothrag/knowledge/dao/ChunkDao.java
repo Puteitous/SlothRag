@@ -76,41 +76,35 @@ public class ChunkDao {
     }
 
     /**
-     * 关键词检索：对多个关键词做 LIKE 子串匹配（OR），中文可直接命中
+     * 关键词检索：使用 pg_jieba 中文分词全文检索。
+     * 将原始问题直接传给 plainto_tsquery，由 jieba 引擎自动分词。
+     * 搭配 GIN 索引 idx_chunk_content_fts（to_tsvector('jiebacfg', content)）。
      *
-     * @param keywords 切词后的关键词列表
+     * @param query 用户原始问题（无需预分词）
      */
-    public List<SearchHit> keywordSearch(List<String> keywords, Long kbId, int topK) {
-        if (keywords == null || keywords.isEmpty()) {
+    public List<SearchHit> keywordSearch(String query, Long kbId, int topK) {
+        if (query == null || query.isBlank()) {
             return List.of();
         }
-        StringBuilder sql = new StringBuilder("""
+        String sql = """
                 SELECT c.id, c.doc_id, c.content, c.heading_path,
-                       1.0 AS score,
+                       ts_rank(to_tsvector('jiebacfg', c.content), plainto_tsquery('jiebacfg', ?)) AS score,
                        d.file_name AS doc_name
                 FROM chunk c
                 LEFT JOIN doc d ON d.id = c.doc_id
-                WHERE c.kb_id = ? AND (
-                """);
-        List<Object> args = new ArrayList<>();
-        args.add(kbId);
-        for (int i = 0; i < keywords.size(); i++) {
-            if (i > 0) {
-                sql.append(" OR ");
-            }
-            sql.append("c.content LIKE ? ESCAPE '\\'");
-            args.add("%" + escapeLike(keywords.get(i)) + "%");
-        }
-        sql.append(") ORDER BY c.seq LIMIT ?");
-        args.add(topK);
-        return jdbc.query(sql.toString(), (rs, i) -> new SearchHit(
+                WHERE c.kb_id = ?
+                  AND to_tsvector('jiebacfg', c.content) @@ plainto_tsquery('jiebacfg', ?)
+                ORDER BY score DESC
+                LIMIT ?
+                """;
+        return jdbc.query(sql, (rs, i) -> new SearchHit(
                         rs.getLong("id"),
                         rs.getLong("doc_id"),
                         rs.getString("content"),
                         rs.getDouble("score"),
                         rs.getString("heading_path"),
                         rs.getString("doc_name")),
-                args.toArray());
+                query, kbId, query, topK);
     }
 
     /**

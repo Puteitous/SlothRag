@@ -1,0 +1,18 @@
+# slothrag PostgreSQL 镜像：pgvector + pg_jieba 中文分词
+# 基于 pgvector/pgvector:pg16（Debian Bookworm）
+# pg_jieba 从 PIGSTY apt 仓库安装预编译 deb 包，无需编译
+FROM pgvector/pgvector:pg16
+
+# 添加 PIGSTY GPG key 和 apt 仓库，安装 pg_jieba
+# 1. 先替换 Debian 源为清华镜像源，解决国内网络问题
+# 2. 安装必要工具，添加 Pigsty 源，安装 pg_jieba
+RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources && \
+    sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg && \
+    mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://repo.pigsty.io/key | gpg --dearmor -o /etc/apt/keyrings/pigsty.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/pigsty.gpg] https://repo.pigsty.io/apt/pgsql/bookworm bookworm main" > /etc/apt/sources.list.d/pigsty.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends postgresql-16-pg-jieba && \
+    rm -rf /var/lib/apt/lists/*

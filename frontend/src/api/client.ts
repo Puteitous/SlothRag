@@ -156,12 +156,13 @@ export const chatApi = {
    */
   stream: (
     question: string,
-    kbId: number,
+    kbId: number | null,
     conversationId: string | null,
     onEvent: (event: { event: ChatSseEventName; data: unknown }) => void,
     signal?: AbortSignal,
   ): Promise<void> => {
-    const params = new URLSearchParams({ question, kbId: String(kbId) });
+    const params = new URLSearchParams({ question });
+    if (kbId != null) params.set('kbId', String(kbId));
     if (conversationId) params.set('conversationId', conversationId);
     return streamSse(`/api/chat?${params.toString()}`, onEvent, signal);
   },
