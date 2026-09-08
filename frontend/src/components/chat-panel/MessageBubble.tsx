@@ -3,28 +3,34 @@
  *
  * 渲染规则:
  *  - role === 'user':右对齐,纯文本,长内容可折叠
- *  - role === 'assistant':左对齐,Markdown 渲染,末尾带来源引用折叠区
+ *  - role === 'assistant':左对齐,Markdown 渲染,末尾带来源引用折叠区 + 反馈按钮
  *  - isStreaming === true:流式态,末尾带闪烁光标
  *
  * 裁剪说明:从 HippoBuddy 版搬入,删除了 tool 分支 / reasoning 折叠 /
  * 联网搜索行 / 文件产物指示器 / 重试分叉回滚按钮(slothrag 无工具链)。
  */
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import type { Message, SourceItem } from '@/types';
+import type { Message, SourceItem, FeedbackType } from '@/types';
 import { renderMarkdown } from '@/utils/markdown';
 import { useI18n } from '@/i18n';
+import { useChatStore } from '@/stores/chatStore';
+import { feedbackApi } from '@/api/client';
 import './MessageBubble.css';
 
 interface MessageBubbleProps {
   message: Message;
   /** 是否为流式态(末尾显示闪烁光标) */
   isStreaming?: boolean;
+  /** 上一条用户提问(用于反馈时记录) */
+  prevQuestion?: string;
 }
 
 /** 用户消息长内容折叠阈值(px,超过自动折叠) */
 const COLLAPSE_THRESHOLD = 200;
 
-function MessageBubbleComponent({ message, isStreaming = false }: MessageBubbleProps) {
+function MessageBubbleComponent({ message, isStreaming = false, prevQuestion }: MessageBubbleProps) {
+  const conversationId = useChatStore((s) => s.conversationId);
+
   // 助手消息的 HTML(Markdown 渲染 + DOMPurify 净化)
   const html = useMemo(
     () => (message.content ? renderMarkdown(message.content) : ''),
@@ -60,6 +66,15 @@ function MessageBubbleComponent({ message, isStreaming = false }: MessageBubbleP
         time={formatMsgTime(message.timestamp)}
         onCopy={() => copyText(message.content)}
       />
+      {/* 流式结束后才显示反馈按钮 */}
+      {!isStreaming && conversationId && (
+        <FeedbackButtons
+          sessionId={conversationId}
+          messageId={message.id}
+          question={prevQuestion}
+          answer={message.content}
+        />
+      )}
     </div>
   );
 }
@@ -217,6 +232,81 @@ function MessageFooter({ time, onCopy }: { time: string; onCopy: () => void }) {
         </button>
       </div>
       {time && <span className="message-time">{time}</span>}
+    </div>
+  );
+}
+
+/* ============================================================
+   消息反馈按钮组（👍👎）
+   ============================================================ */
+
+const THUMBS_UP_SVG = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M7 10v12" /><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" />
+  </svg>
+);
+
+const THUMBS_DOWN_SVG = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 14V2" /><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" />
+  </svg>
+);
+
+function FeedbackButtons({ sessionId, messageId, question, answer }: {
+  sessionId: string;
+  messageId: string;
+  question?: string;
+  answer: string;
+}) {
+  const { t } = useI18n();
+  const [current, setCurrent] = useState<FeedbackType | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // 挂载时查询已有反馈（历史消息回显）
+  useEffect(() => {
+    setMounted(true);
+    feedbackApi.get(sessionId, messageId).then((rec) => {
+      if (rec) setCurrent(rec.feedback);
+    }).catch(() => { /* 静默失败，不回显即可 */ });
+  }, [sessionId, messageId]);
+
+  const handleFeedback = (type: FeedbackType) => {
+    // 点击已选中的按钮 = 取消反馈
+    const newValue = current === type ? null : type;
+    setCurrent(newValue);
+
+    if (newValue) {
+      feedbackApi.submit({ sessionId, messageId, feedback: newValue, question, answer }).catch(() => {
+        // 失败时回退
+        setCurrent(current);
+      });
+    }
+    // 取消时无需调后端（用 upsert 覆盖为无意义值？暂不处理）
+  };
+
+  if (!mounted) return null;
+
+  return (
+    <div className="msg-feedback">
+      <span className="msg-feedback-label">{t('chat.feedback.helpful')}</span>
+      <button
+        type="button"
+        className={`msg-feedback-btn${current === 'thumbs_up' ? ' active' : ''}`}
+        onClick={() => handleFeedback('thumbs_up')}
+        title={current === 'thumbs_up' ? t('chat.feedback.retract') : t('chat.feedback.helpful')}
+        aria-label={current === 'thumbs_up' ? t('chat.feedback.retract') : t('chat.feedback.helpful')}
+      >
+        {THUMBS_UP_SVG}
+      </button>
+      <button
+        type="button"
+        className={`msg-feedback-btn${current === 'thumbs_down' ? ' active' : ''}`}
+        onClick={() => handleFeedback('thumbs_down')}
+        title={current === 'thumbs_down' ? t('chat.feedback.retract') : t('chat.feedback.notHelpful')}
+        aria-label={current === 'thumbs_down' ? t('chat.feedback.retract') : t('chat.feedback.notHelpful')}
+      >
+        {THUMBS_DOWN_SVG}
+      </button>
     </div>
   );
 }

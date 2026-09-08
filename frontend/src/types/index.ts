@@ -86,3 +86,28 @@ export interface ConversationItem {
   createdAt?: string;
   updatedAt?: string;
 }
+
+/** 消息反馈类型 */
+export type FeedbackType = 'thumbs_up' | 'thumbs_down';
+
+/** 反馈请求体 */
+export interface FeedbackRequest {
+  sessionId: string;
+  messageId: string;
+  question?: string;
+  answer?: string;
+  feedback: FeedbackType;
+  comment?: string;
+}
+
+/** 反馈记录（含回显） */
+export interface FeedbackRecord {
+  id: number;
+  sessionId: string;
+  messageId: string;
+  question?: string;
+  answer?: string;
+  feedback: FeedbackType;
+  comment?: string;
+  createdAt: string;
+}

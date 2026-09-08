@@ -38,13 +38,13 @@ public class ChatService {
     /** 代理边界提示词：约束模型只在需要知识时检索、其余按类型自判，防越界/防编造 */
     private static final String AGENT_SYSTEM_PROMPT =
             "你是企业知识库问答助手。请依据知识库内容回答企业相关问题。\n"
-            + "可用工具：search_kb —— 在企业知识库中检索相关资料。\n"
             + "行为规则：\n"
             + "1. 只有当问题属于知识库范围、需要知识支撑时才调用 search_kb。\n"
             + "2. 打招呼 / 闲聊（如“你好”“谢谢”“在吗”）：不要调用工具，直接用一两句话礼貌回应即可。\n"
             + "3. 明显与知识库业务无关的通用问题（时事、娱乐、生活等）：不要调用工具，礼貌说明你只服务知识库范围内的企业问题，不展开。\n"
             + "4. 调用检索后有充分依据：严格基于检索内容回答，不编造，可在相关结论后标注【来源】。\n"
-            + "5. 调用检索后仍未检索到相关依据：明确告知用户“该问题暂未收录到知识库”，并可提示联系人工。\n"
+            + "5. 如果一轮检索结果不够充分（缺少关键信息），可以调整关键词再次调用 search_kb 补充检索。\n"
+            + "6. 调用检索后仍未检索到相关依据：明确告知用户“该问题暂未收录到知识库”，并可提示联系人工。\n"
             + "回答保持简洁、自然、友好。";
 
     /** agent 工具调用最大轮次（防止无限循环） */
@@ -189,25 +189,44 @@ public class ChatService {
                 messages.add(ChatMessage.toolResult(call.getId(), name, "未知工具"));
                 continue;
             }
-            String query = parseQuery(call.getFunction().getArguments());
-            KbSearchTool.ExecResult result = kbSearchTool.execute(query, kbId);
+            List<String> queries = parseQueries(call.getFunction().getArguments());
+            KbSearchTool.ExecResult result = kbSearchTool.execute(queries, kbId);
             messages.add(ChatMessage.toolResult(call.getId(), name, result.toolContent()));
             sourcesAcc.addAll(KbSearchTool.toSources(result.hits()));
         }
     }
 
     /**
-     * 解析工具参数中的 query；解析失败或为空时回退空串（由检索层兜底）
+     * 解析工具参数中的 queries（数组）；回退尝试解析单 query（兼容旧模型）。
+     * 解析失败或为空时返回含空串的列表（由检索层兜底）。
      */
-    private String parseQuery(String arguments) {
+    private List<String> parseQueries(String arguments) {
         if (!StringUtils.hasText(arguments)) {
-            return "";
+            return List.of("");
         }
         try {
             JsonNode node = MAPPER.readTree(arguments);
-            return node.path("query").asText("");
+            JsonNode queries = node.path("queries");
+            if (queries.isArray() && queries.size() > 0) {
+                List<String> result = new ArrayList<>();
+                for (JsonNode q : queries) {
+                    String text = q.asText().trim();
+                    if (!text.isEmpty()) {
+                        result.add(text);
+                    }
+                }
+                if (!result.isEmpty()) {
+                    return result;
+                }
+            }
+            // 回退：解析单 query（兼容旧模型 tool definition）
+            String single = node.path("query").asText("");
+            if (!single.isEmpty()) {
+                return List.of(single);
+            }
+            return List.of("");
         } catch (IOException e) {
-            return "";
+            return List.of("");
         }
     }
 

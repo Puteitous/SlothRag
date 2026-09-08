@@ -105,6 +105,24 @@ export const kbApi = {
   },
 };
 
+/** 消息反馈（👍👎） */
+export const feedbackApi = {
+  /** 提交反馈（重复提交同一 messageId 会覆盖） */
+  submit: async (req: import('@/types').FeedbackRequest): Promise<void> => {
+    const res = await postJson<ApiResult<void>>('/api/feedback', req);
+    if (res.code !== '0') throw new Error(res.message);
+  },
+
+  /** 查询某条消息已有的反馈 */
+  get: async (sessionId: string, messageId: string): Promise<import('@/types').FeedbackRecord | null> => {
+    const res = await getJson<ApiResult<import('@/types').FeedbackRecord | null>>(
+      `/api/feedback?sessionId=${encodeURIComponent(sessionId)}&messageId=${encodeURIComponent(messageId)}`,
+    );
+    if (res.code !== '0') throw new Error(res.message);
+    return res.data;
+  },
+};
+
 /** 流式问答 */
 export const chatApi = {
   /**

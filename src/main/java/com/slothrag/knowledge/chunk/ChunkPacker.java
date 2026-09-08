@@ -1,7 +1,11 @@
 package com.slothrag.knowledge.chunk;
 
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.List;
+
+@Component
 
 /**
  * 分块打包器：将 BlockAwareChunker 产出的小块合并到目标窗口大小

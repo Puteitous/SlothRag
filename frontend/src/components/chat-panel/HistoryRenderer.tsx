@@ -13,8 +13,18 @@ export function HistoryRenderer() {
 
   return (
     <div className="history-list">
-      {messages.map((m) => (
-        <MessageBubble key={m.id} message={m} isStreaming={m.isStreaming} />
+      {messages.map((m, idx) => (
+        <MessageBubble
+          key={m.id}
+          message={m}
+          isStreaming={m.isStreaming}
+          // 为 assistant 消息传递上一条用户提问
+          prevQuestion={
+            m.role === 'assistant' && idx > 0 && messages[idx - 1].role === 'user'
+              ? messages[idx - 1].content
+              : undefined
+          }
+        />
       ))}
     </div>
   );

@@ -33,6 +33,12 @@ const zh: Record<string, string> = {
   'chat.historyDelete': '删除会话',
   'chat.historyConfirmDelete': '确定删除该会话吗？此操作不可恢复',
 
+  // 消息反馈
+  'chat.feedback.helpful': '有帮助',
+  'chat.feedback.notHelpful': '没帮助',
+  'chat.feedback.thanks': '感谢你的反馈',
+  'chat.feedback.retract': '已取消反馈',
+
   // 应用导航
   'app.nav.chat': '聊天',
   'app.nav.admin': '管理后台',

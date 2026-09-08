@@ -1,6 +1,7 @@
--- slothrag 数据库初始化脚本
--- 执行方式：psql -U postgres -h localhost -d slothrag -f schema.sql
--- 前置：CREATE DATABASE slothrag;（本脚本假定已在 slothrag 库内执行）
+-- =============================================================================
+-- V1__init_schema.sql
+-- 初始数据库表结构：知识库 / 文档 / 分块（含向量）/ 入库任务 / 会话 / 用户 / 反馈
+-- =============================================================================
 
 -- 向量扩展（BGE-M3 输出 1024 维；如需更换模型调整 vector(1024) 维度）
 CREATE EXTENSION IF NOT EXISTS vector;
@@ -31,7 +32,7 @@ CREATE TABLE IF NOT EXISTS doc (
 CREATE INDEX IF NOT EXISTS idx_doc_kb_id ON doc (kb_id);
 CREATE INDEX IF NOT EXISTS idx_doc_status ON doc (status);
 
--- ============ 分块（含向量列） ============
+-- ============ 分块（含向量列 + 章节路径） ============
 CREATE TABLE IF NOT EXISTS chunk (
     id          BIGSERIAL PRIMARY KEY,
     doc_id      BIGINT          NOT NULL REFERENCES doc (id) ON DELETE CASCADE,
