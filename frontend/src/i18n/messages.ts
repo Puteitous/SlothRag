@@ -32,6 +32,7 @@ const zh: Record<string, string> = {
   'chat.historyEmpty': '暂无历史会话',
   'chat.historyDelete': '删除会话',
   'chat.historyConfirmDelete': '确定删除该会话吗？此操作不可恢复',
+  'chat.historyEnd': '— 已全部加载 —',
 
   // 消息反馈
   'chat.feedback.helpful': '有帮助',

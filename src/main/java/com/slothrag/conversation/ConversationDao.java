@@ -53,6 +53,13 @@ public class ConversationDao {
         return n == null ? 0 : n;
     }
 
+    /**
+     * 返回 DB 中所有 session_id（用于自动恢复时比对文件系统）
+     */
+    public List<String> listAllSessionIds() {
+        return jdbc.queryForList("SELECT session_id FROM conversation", String.class);
+    }
+
     public void deleteBySessionId(String sessionId) {
         jdbc.update("DELETE FROM conversation WHERE session_id = ?", sessionId);
     }

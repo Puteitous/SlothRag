@@ -3,7 +3,9 @@
  *
  * 列出最近会话,支持新建 / 切换续接 / 删除。当前活动会话以
  * chatStore.conversationId 为准高亮。
+ * 滚动到底部时自动加载更多（IntersectionObserver）。
  */
+import { useEffect, useRef } from 'react';
 import { useChatStore } from '@/stores/chatStore';
 import { useConversationListStore } from '@/stores/conversationListStore';
 import { useI18n } from '@/i18n';
@@ -12,10 +14,30 @@ export function ConversationSidebar() {
   const { t } = useI18n();
   const list = useConversationListStore((s) => s.list);
   const loading = useConversationListStore((s) => s.loading);
+  const hasMore = useConversationListStore((s) => s.hasMore);
+  const load = useConversationListStore((s) => s.load);
   const remove = useConversationListStore((s) => s.remove);
   const conversationId = useChatStore((s) => s.conversationId);
   const reset = useChatStore((s) => s.reset);
   const startSession = useChatStore((s) => s.startSession);
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // ── 滚动到底自动加载更多 ──────────────────────────────
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasMore && !loading) {
+          load(true);
+        }
+      },
+      { rootMargin: '100px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loading, load]);
 
   const handleNew = () => reset();
 
@@ -67,6 +89,13 @@ export function ConversationSidebar() {
             </button>
           </div>
         ))}
+        {/* ── 哨兵元素 + 加载指示器 ── */}
+        <div ref={sentinelRef} className="conversation-sidebar-sentinel">
+          {loading && list.length > 0 && <span className="conversation-sidebar-loading" />}
+          {!hasMore && list.length > 0 && (
+            <span className="conversation-sidebar-end">{t('chat.historyEnd') || '— 已全部加载 —'}</span>
+          )}
+        </div>
       </div>
     </aside>
   );

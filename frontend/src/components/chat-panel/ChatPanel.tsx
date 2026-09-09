@@ -7,6 +7,7 @@
  * 文件变更 / 图片上传 / 模式预设等桌面 Agent 专属能力。
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { usePrevious } from '@/utils/hooks';
 import { useAppStore } from '@/stores/appStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useConversationListStore } from '@/stores/conversationListStore';
@@ -44,13 +45,21 @@ export function ChatPanel() {
     void loadKbs();
   }, [loadKbs]);
 
-  // 首帧加载历史会话；新会话产生(会话 id 变为非空)时刷新列表
+  // 跟踪上一个 conversationId，用来判断是否是新创建的会话
+  const prevConversationId = usePrevious(conversationId);
+
+  // 首帧加载历史会话
   useEffect(() => {
     void loadConversations();
   }, [loadConversations]);
+
+  // 仅当 conversationId 从 null → 非 null（新建会话后首次产生 id）时刷新列表
+  // 切换已有会话时不刷新，避免滚动位置丢失
   useEffect(() => {
-    if (conversationId) void loadConversations();
-  }, [conversationId, loadConversations]);
+    if (conversationId && prevConversationId == null) {
+      void loadConversations();
+    }
+  }, [conversationId, prevConversationId, loadConversations]);
 
   // ── 自动滚动 ──────────────────────────────────────────────
   const messagesEndRef = useRef<HTMLDivElement | null>(null);

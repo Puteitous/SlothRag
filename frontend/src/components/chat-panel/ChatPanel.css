@@ -10,7 +10,7 @@
 .chat-panel {
   display: flex;
   flex-direction: row;
-  height: 100%;
+  flex: 1;
   min-height: 0;
   /* ChatNav(.chat-nav-strip 绝对定位)以 .chat-panel 为定位基准 */
   position: relative;
@@ -1044,6 +1044,35 @@
 
 .conversation-sidebar-item-del:hover {
   color: var(--error-color, #dc2626);
+}
+
+/* ── 哨兵（滚动加载指示器） ──────────────────────────── */
+
+.conversation-sidebar-sentinel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 4px 0;
+}
+
+.conversation-sidebar-loading {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary-color, #4f46e5);
+  border-radius: 50%;
+  animation: conversation-sidebar-spin 0.6s linear infinite;
+}
+
+@keyframes conversation-sidebar-spin {
+  to { transform: rotate(360deg); }
+}
+
+.conversation-sidebar-end {
+  font-size: var(--font-size-xs, 11px);
+  color: var(--text-muted, var(--text-secondary));
+  user-select: none;
 }
 
 /* ── 推荐问题 ──────────────────────────────────────────── */

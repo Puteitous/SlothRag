@@ -68,6 +68,66 @@ public class SessionStore {
     }
 
     /**
+     * 扫描 sessions 目录，返回所有存在的会话 id（按文件修改时间倒序）
+     */
+    public List<String> listSessionIds() {
+        if (!Files.exists(sessionDir)) {
+            return List.of();
+        }
+        try (var stream = Files.list(sessionDir)) {
+            return stream
+                    .filter(p -> p.toString().endsWith(".jsonl"))
+                    .sorted((a, b) -> {
+                        try {
+                            return Long.compare(
+                                    Files.getLastModifiedTime(b).toMillis(),
+                                    Files.getLastModifiedTime(a).toMillis());
+                        } catch (IOException e) {
+                            return 0;
+                        }
+                    })
+                    .map(p -> p.getFileName().toString().replace(".jsonl", ""))
+                    .toList();
+        } catch (IOException e) {
+            log.warn("扫描会话文件失败", e);
+            return List.of();
+        }
+    }
+
+    /**
+     * 从 jsonl 文件中提取首条用户消息作为会话标题。
+     * 取前 30 个字符，不足时截断。
+     */
+    public String extractTitle(String sessionId) {
+        Path file = sessionDir.resolve(sessionId + ".jsonl");
+        if (!Files.exists(file)) {
+            return null;
+        }
+        try (var lines = Files.lines(file)) {
+            String title = lines
+                    .filter(l -> !l.isBlank())
+                    .map(l -> {
+                        try {
+                            return MAPPER.readValue(l, ChatMessage.class);
+                        } catch (IOException e) {
+                            return null;
+                        }
+                    })
+                    .filter(m -> m != null && "user".equals(m.getRole()) && m.getContent() != null && !m.getContent().isBlank())
+                    .findFirst()
+                    .map(m -> m.getContent().trim())
+                    .orElse(null);
+            if (title == null) {
+                return null;
+            }
+            return title.length() <= 30 ? title : title.substring(0, 30);
+        } catch (IOException e) {
+            log.warn("读取会话标题失败 sessionId={}", sessionId, e);
+            return null;
+        }
+    }
+
+    /**
      * 读取会话全部历史（按写入顺序）
      */
     public List<ChatMessage> loadMessages(String sessionId) {
