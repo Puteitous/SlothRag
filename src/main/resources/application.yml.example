@@ -32,6 +32,8 @@ ai:
 # 知识库文档存储目录
 kb:
   storage-dir: ${KB_STORAGE_DIR:./data/docs}
+  # 会话记录（JSONL）目录，与知识库文档目录解耦
+  session-dir: ${KB_SESSION_DIR:./data/sessions}
   search:
     rerank-enabled: true
     rerank-candidates: 8
@@ -40,7 +42,3 @@ kb:
   chat:
     min-similarity: 0.35
     out-of-scope-message: "很抱歉，这个问题超出了当前知识范围，建议联系人工客服（转8001）进行咨询。"
-
-logging:
-  level:
-    com.slothrag: debug

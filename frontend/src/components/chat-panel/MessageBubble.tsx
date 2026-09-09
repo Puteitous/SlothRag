@@ -9,7 +9,7 @@
  * 裁剪说明:从 HippoBuddy 版搬入,删除了 tool 分支 / reasoning 折叠 /
  * 联网搜索行 / 文件产物指示器 / 重试分叉回滚按钮(slothrag 无工具链)。
  */
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import type { Message, SourceItem, FeedbackType } from '@/types';
 import { renderMarkdown } from '@/utils/markdown';
 import { useI18n } from '@/i18n';
@@ -63,18 +63,16 @@ function MessageBubbleComponent({ message, isStreaming = false, prevQuestion }: 
         <SourcesCollapse sources={message.sources} />
       )}
       <MessageFooter
-        time={formatMsgTime(message.timestamp)}
         onCopy={() => copyText(message.content)}
+        extraActions={!isStreaming && conversationId ? (
+          <FeedbackButtons
+            sessionId={conversationId}
+            messageId={message.id}
+            question={prevQuestion}
+            answer={message.content}
+          />
+        ) : undefined}
       />
-      {/* 流式结束后才显示反馈按钮 */}
-      {!isStreaming && conversationId && (
-        <FeedbackButtons
-          sessionId={conversationId}
-          messageId={message.id}
-          question={prevQuestion}
-          answer={message.content}
-        />
-      )}
     </div>
   );
 }
@@ -208,7 +206,11 @@ function formatMsgTime(timestamp?: number): string {
   });
 }
 
-function MessageFooter({ time, onCopy }: { time: string; onCopy: () => void }) {
+function MessageFooter({ time, onCopy, extraActions }: {
+  time?: string;
+  onCopy: () => void;
+  extraActions?: ReactNode;
+}) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
 
@@ -230,6 +232,7 @@ function MessageFooter({ time, onCopy }: { time: string; onCopy: () => void }) {
         >
           {copied ? CHECK_SVG : COPY_SVG}
         </button>
+        {extraActions}
       </div>
       {time && <span className="message-time">{time}</span>}
     </div>
@@ -287,8 +290,7 @@ function FeedbackButtons({ sessionId, messageId, question, answer }: {
   if (!mounted) return null;
 
   return (
-    <div className="msg-feedback">
-      <span className="msg-feedback-label">{t('chat.feedback.helpful')}</span>
+    <>
       <button
         type="button"
         className={`msg-feedback-btn${current === 'thumbs_up' ? ' active' : ''}`}
@@ -307,7 +309,7 @@ function FeedbackButtons({ sessionId, messageId, question, answer }: {
       >
         {THUMBS_DOWN_SVG}
       </button>
-    </div>
+    </>
   );
 }
 

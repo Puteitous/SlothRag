@@ -1,6 +1,7 @@
 package com.slothrag.agent;
 
 import com.slothrag.ai.llm.ToolDefinition;
+import com.slothrag.common.logging.LoggingContext;
 import com.slothrag.search.service.SearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,14 +62,19 @@ public class KbSearchTool {
             return new ExecResult("未提供查询关键词。", List.of());
         }
 
+        // 当前线程（LLM 回调线程）已挂 sessionId，快照传给并行子线程，避免检索日志丢上下文
+        Map<String, String> ctx = LoggingContext.snapshot();
+
         // 并行检索每个 query
         List<CompletableFuture<List<SearchService.SearchResultItem>>> futures = queries.stream()
                 .map(q -> CompletableFuture.supplyAsync(() -> {
-                    try {
-                        return searchService.search(q, kbId);
-                    } catch (Exception e) {
-                        log.warn("检索失败 query='{}': {}", q, e.getMessage());
-                        return List.<SearchService.SearchResultItem>of();
+                    try (var ignored = LoggingContext.with(ctx)) {
+                        try {
+                            return searchService.search(q, kbId);
+                        } catch (Exception e) {
+                            log.warn("检索失败 query='{}': {}", q, e.getMessage());
+                            return List.<SearchService.SearchResultItem>of();
+                        }
                     }
                 }))
                 .toList();

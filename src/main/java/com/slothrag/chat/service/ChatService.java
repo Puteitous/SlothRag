@@ -10,6 +10,7 @@ import com.slothrag.ai.llm.OpenAiCompatibleLlmClient;
 import com.slothrag.ai.llm.StreamCallback;
 import com.slothrag.ai.llm.ToolCall;
 import com.slothrag.ai.llm.ToolDefinition;
+import com.slothrag.common.logging.LoggingContext;
 import com.slothrag.conversation.ConversationService;
 import com.slothrag.session.SessionStore;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -85,8 +87,10 @@ public class ChatService {
      * @param conversationId 已有会话 id；为空时新建会话，sessionId 通过 SSE session 事件返回
      */
     public void streamChat(String question, Long kbId, String conversationId, SseEmitter emitter) {
+        String sessionId = StringUtils.hasText(conversationId) ? conversationId : sessionStore.newSessionId();
+        // 主线程挂上会话上下文，异步回调线程通过快照恢复（见各回调 onXxx 内的 with(ctx)）
+        Map<String, String> ctx = LoggingContext.open(sessionId);
         try {
-            String sessionId = StringUtils.hasText(conversationId) ? conversationId : sessionStore.newSessionId();
             // 会话元数据登录：首问建会话（title=首问），续接滚动 updated_at
             conversationService.upsert(sessionId, question);
             emitter.send(SseEmitter.event().name("session").data(sessionId));
@@ -106,18 +110,21 @@ public class ChatService {
                 // 纯 LLM 对话模式：不加工具，不走检索
                 messages.add(0, ChatMessage.system(GENERAL_SYSTEM_PROMPT));
                 buffer.start();
-                streamPureLlm(messages, sessionId, emitter, buffer, question);
+                streamPureLlm(messages, sessionId, emitter, buffer, question, ctx);
             } else {
                 // RAG 模式：加工具，走 agent loop
                 messages.add(0, ChatMessage.system(AGENT_SYSTEM_PROMPT));
                 List<ToolDefinition> tools = List.of(kbSearchTool.definition(),
                         readDocTool.definition(), grepDocTool.definition());
                 buffer.start();
-                runLoop(messages, tools, kbId, sessionId, emitter, buffer, sourcesAcc, 0, question);
+                runLoop(messages, tools, kbId, sessionId, emitter, buffer, sourcesAcc, 0, question, ctx);
             }
         } catch (Exception e) {
             log.error("问答异常", e);
             sendError(emitter, e);
+        } finally {
+            // 清理 Tomcat 请求线程的 MDC，避免泄漏到复用线程的下一个请求
+            LoggingContext.clear();
         }
     }
 
@@ -125,30 +132,37 @@ public class ChatService {
      * 纯 LLM 流式对话（无工具调用），流结束后直接落盘完成。
      */
     private void streamPureLlm(List<ChatMessage> messages, String sessionId,
-                                SseEmitter emitter, DeltaBuffer buffer, String question) {
+                                SseEmitter emitter, DeltaBuffer buffer, String question,
+                                Map<String, String> ctx) {
         StringBuilder fullText = new StringBuilder();
 
         llmClient.streamChat(messages, new StreamCallback() {
             @Override
             public void onDelta(String text) {
-                fullText.append(text);
-                buffer.append(text);
+                try (var ignored = LoggingContext.with(ctx)) {
+                    fullText.append(text);
+                    buffer.append(text);
+                }
             }
 
             @Override
             public void onComplete() {
-                buffer.stop();
-                String answer = fullText.toString();
-                if (StringUtils.hasText(answer)) {
-                    sessionStore.appendMessage(sessionId, ChatMessage.assistant(answer));
+                try (var ignored = LoggingContext.with(ctx)) {
+                    buffer.stop();
+                    String answer = fullText.toString();
+                    if (StringUtils.hasText(answer)) {
+                        sessionStore.appendMessage(sessionId, ChatMessage.assistant(answer));
+                    }
+                    complete(emitter);
                 }
-                complete(emitter);
             }
 
             @Override
             public void onError(Throwable t) {
-                buffer.stop();
-                sendError(emitter, t);
+                try (var ignored = LoggingContext.with(ctx)) {
+                    buffer.stop();
+                    sendError(emitter, t);
+                }
             }
         });
     }
@@ -159,7 +173,8 @@ public class ChatService {
      */
     private void runLoop(List<ChatMessage> messages, List<ToolDefinition> tools, Long kbId,
                          String sessionId, SseEmitter emitter, DeltaBuffer buffer,
-                         List<Map<String, Object>> sourcesAcc, int turn, String question) {
+                         List<Map<String, Object>> sourcesAcc, int turn, String question,
+                         Map<String, String> ctx) {
         if (turn >= MAX_TOOL_TURNS) {
             buffer.stop();
             complete(emitter);
@@ -172,56 +187,82 @@ public class ChatService {
         llmClient.streamChat(messages, tools, new StreamCallback() {
             @Override
             public void onDelta(String text) {
-                turnText.append(text);
-                buffer.append(text);
+                try (var ignored = LoggingContext.with(ctx)) {
+                    turnText.append(text);
+                    buffer.append(text);
+                }
             }
 
             @Override
             public void onToolCalls(List<ToolCall> calls) {
-                if (executed[0]) {
-                    return;
-                }
-                executed[0] = true;
-                try {
-                    runTools(calls, messages, kbId, sourcesAcc);
-                    runLoop(messages, tools, kbId, sessionId, emitter, buffer, sourcesAcc, turn + 1, question);
-                } catch (Exception e) {
-                    log.error("工具执行失败", e);
-                    buffer.stop();
-                    sendError(emitter, e);
+                try (var ignored = LoggingContext.with(ctx)) {
+                    if (executed[0]) {
+                        return;
+                    }
+                    executed[0] = true;
+                    try {
+                        runTools(calls, messages, kbId, sourcesAcc);
+                        runLoop(messages, tools, kbId, sessionId, emitter, buffer, sourcesAcc, turn + 1, question, ctx);
+                    } catch (Exception e) {
+                        log.error("工具执行失败", e);
+                        buffer.stop();
+                        sendError(emitter, e);
+                    }
                 }
             }
 
             @Override
             public void onComplete() {
-                if (executed[0]) {
-                    return; // 工具轮已由下一轮接管
-                }
-                // 最终回答轮：落盘该轮完整文本，发送 sources 后结束
-                buffer.stop();
-                String answer = turnText.toString();
-                if (StringUtils.hasText(answer)) {
-                    sessionStore.appendMessage(sessionId, ChatMessage.assistant(answer));
-                }
-                try {
-                    if (!sourcesAcc.isEmpty()) {
-                        emitter.send(SseEmitter.event().name("sources").data(sourcesAcc));
+                try (var ignored = LoggingContext.with(ctx)) {
+                    if (executed[0]) {
+                        return; // 工具轮已由下一轮接管
                     }
-                    // 推荐问题：用非流式轻量 LLM 调用生成 3 个相关问题
-                    List<String> recommended = recommendedQuestionService.generate(question, answer);
-                    if (!recommended.isEmpty()) {
-                        emitter.send(SseEmitter.event().name("recommended").data(recommended));
+                    // 最终回答轮：落盘该轮完整文本，保存 answer 用于后续推荐问题生成
+                    buffer.stop();
+                    String answer = turnText.toString();
+                    if (StringUtils.hasText(answer)) {
+                        sessionStore.appendMessage(sessionId, ChatMessage.assistant(answer));
                     }
-                } catch (IOException e) {
-                    log.debug("SSE 发送失败: {}", e.getMessage());
+                    // 先发 sources
+                    try {
+                        if (!sourcesAcc.isEmpty()) {
+                            emitter.send(SseEmitter.event().name("sources").data(sourcesAcc));
+                        }
+                    } catch (IOException e) {
+                        log.warn("SSE 发送 sources 失败: {}", e.getMessage());
+                    }
+                    // 推荐问题异步执行（最多等 5s），不阻塞回答流的闭环
+                    List<String> recommended;
+                    try {
+                        CompletableFuture<List<String>> future = CompletableFuture
+                                .supplyAsync(() -> {
+                                    try (var scope = LoggingContext.with(ctx)) {
+                                        return recommendedQuestionService.generate(question, answer);
+                                    }
+                                });
+                        recommended = future.get(5, TimeUnit.SECONDS);
+                    } catch (Exception e) {
+                        log.debug("推荐问题超时或异常（静默降级）: {}", e.getMessage());
+                        recommended = List.of();
+                    }
+                    // 发推荐问题事件，然后 complete
+                    try {
+                        if (!recommended.isEmpty()) {
+                            emitter.send(SseEmitter.event().name("recommended").data(recommended));
+                        }
+                    } catch (IOException e) {
+                        log.warn("SSE 发送 recommended 失败: {}", e.getMessage());
+                    }
+                    complete(emitter);
                 }
-                complete(emitter);
             }
 
             @Override
             public void onError(Throwable t) {
-                buffer.stop();
-                sendError(emitter, t);
+                try (var ignored = LoggingContext.with(ctx)) {
+                    buffer.stop();
+                    sendError(emitter, t);
+                }
             }
         });
     }
@@ -383,7 +424,7 @@ public class ChatService {
             try {
                 emitter.send(SseEmitter.event().name("delta").data(chunk));
             } catch (IOException e) {
-                log.debug("SSE 发送中断: {}", e.getMessage());
+                log.warn("SSE 发送中断: {}", e.getMessage());
                 cancelTask();
             }
         }

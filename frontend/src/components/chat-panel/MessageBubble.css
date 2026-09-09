@@ -714,6 +714,10 @@
   color: var(--text-secondary);
 }
 
+.message-action-btn:active {
+  transform: scale(0.92);
+}
+
 .message-action-btn.copied {
   background: var(--bg-app);
   color: var(--text-secondary);
@@ -1426,52 +1430,31 @@
    在助手消息气泡底部、footer 下方显示
    ════════════════════════════════════════════════════════ */
 
-.msg-feedback {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border);
-  opacity: 0.6;
-  transition: opacity var(--transition-fast);
-}
-
-.msg-bubble-assistant:hover .msg-feedback {
-  opacity: 1;
-}
-
-.msg-feedback-label {
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
-  margin-right: 2px;
-  cursor: default;
-  user-select: none;
-}
-
 .msg-feedback-btn {
+  /* 与 .message-action-btn 尺寸保持一致,同行排列 */
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
+  padding: 4px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
+  line-height: 1;
   transition: all var(--transition-fast);
 }
 
 .msg-feedback-btn:hover {
-  background: var(--bg-hover);
+  background: var(--bg-app);
   color: var(--text-secondary);
-  border-color: var(--border);
+}
+
+.msg-feedback-btn:active {
+  transform: scale(0.92);
 }
 
 .msg-feedback-btn.active {
   color: var(--primary-color, #1677ff);
-  border-color: var(--primary-color, #1677ff);
   background: color-mix(in srgb, var(--primary-color, #1677ff) 8%, transparent);
 }
